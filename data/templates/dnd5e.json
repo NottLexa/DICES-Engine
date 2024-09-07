@@ -1,0 +1,79 @@
+{
+  "name": "Dungeons & Dragons: 5th Edition",
+  "version": 1,
+  "attributes": {
+    "base": {
+      "name": {
+        "_type": "string",
+        "_name": "Character's name",
+        "_set": ["manual"],
+        "_value": "",
+        "_hidden": false
+      },
+      "level": {
+        "_type": "integer",
+        "_name": "Level",
+        "_set": ["manual"],
+        "_value": 1,
+        "_effects": ["proficiency_bonus += :ceil(@self/4) + 1"],
+        "_hidden": false
+      },
+      "class": {
+        "_type": "string",
+        "_name": "Character's class",
+        "_set": ["manual"],
+        "_value": "",
+        "_effects": [
+          "saving_throws.bonus.strength = (:lower(@self) == 'warrior')"
+        ],
+        "_hidden": false
+      }
+    },
+    "ability_scores": {
+      "strength": {
+        "_type": "integer",
+        "_name": "Strength (score)",
+        "_set": ["manual"],
+        "_effects": ["modifiers.strength += :floor((@self - 10) / 2)"],
+        "_value": 0,
+        "_hidden": false
+      }
+    },
+    "modifiers": {
+      "strength": {
+        "_type": "integer",
+        "_name": "Strength (mod)",
+        "_set": ["auto"],
+        "_effects": ["saving_throws.strength += @self"],
+        "_value": 0,
+        "_hidden": false
+      }
+    },
+    "proficiency_bonus": {
+      "_type": "integer",
+      "_name": "Proficiency Bonus",
+      "_set": ["auto"],
+      "_value": 0,
+      "_hidden": false
+    },
+    "saving_throws": {
+      "strength": {
+        "_type": "integer",
+        "_name": "Strength (ST)",
+        "_set": ["auto"],
+        "_value": 0,
+        "_hidden": false
+      },
+      "bonus": {
+        "strength": {
+          "_type": "boolean",
+          "_name": "Strength (Bonus)",
+          "_set": ["auto"],
+          "_value": false,
+          "_effects": ["saving_throws.strength += :if(@self, proficiency_bonus, 0)"],
+          "_hidden": false
+        }
+      }
+    }
+  }
+}

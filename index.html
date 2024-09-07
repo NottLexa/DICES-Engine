@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>MareCreator v1.0.0</title>
+        <link rel="stylesheet" href="index.css" />
+    </head>
+    <body style="margin: 0; padding: 0">
+        <div style="padding: 32px; background: darkgrey">
+            <div style="margin: 16px; display: flex; flex-direction: row">
+                <label for="templates_select_list">Templates:</label>
+                <select id="templates_select_list" onchange="change_template(this)" style="min-width: 64px"></select>
+                <button id="templates_select_list_update" onclick="update_templates_list()">UPDATE TEMPLATES</button>
+            </div>
+            <button id="updateButton" onclick="update_attribute_values()">UPDATE ATTRIBUTE VALUES</button>
+            <div style="padding: 16px" id="attributes_frame">
+
+            </div>
+        </div>
+
+        <script src="index.js" id="script" platform="NODE"></script>
+    </body>
+</html>
