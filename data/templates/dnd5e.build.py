@@ -1,4 +1,10 @@
-from core import template_builder as tb
+import sys
+try:
+    from core import template_builder as tb
+except:
+    import pathlib
+    sys.path.append(str(pathlib.Path(__file__).parent.parent.parent))
+    from core import template_builder as tb
 import json
 
 #region [String Arrays]
@@ -48,6 +54,20 @@ skills_by_classes = {
     'Rogue': ['Acrobatics', 'Athletics', 'Perception', 'Performance', 'Intimidation', 'Sleight of Hand', 'Deception', 'Insight', 'Investigation', 'Stealth', 'Persuasion'],
     'Ranger': ['Athletics', 'Perception', 'Survival', 'Nature', 'Insight', 'Investigation', 'Stealth', 'Animal Handling'],
     'Sorcerer': ['Intimidation', 'Arcana', 'Deception', 'Insight', 'Religion', 'Persuasion']}
+
+skill_amount_by_classes = {
+    'Bard': 3,
+    'Barbarian': 2,
+    'Fighter': 2,
+    'Wizard': 2,
+    'Druid': 2,
+    'Cleric': 2,
+    'Warlock': 2,
+    'Monk': 2,
+    'Paladin': 2,
+    'Rogue': 4,
+    'Ranger': 3,
+    'Sorcerer': 2}
 
 #endregion
 
@@ -118,11 +138,20 @@ for character_class in skills_by_classes:
     for skill in skills_by_classes[character_class]:
         skill_id = skill.lower().replace(' ', '_')
         class_attribute: tb.Attribute = character_base_attributes.attributes['class']
-        class_attribute.add_effect('character.abilities.class_skills:variants .= :if(:lower(@self) == :lower(\''+str(character_class.lower())+'\'), [\''+skill_id+'\'], [])')
+        class_attribute.add_effect('character.abilities.class_skills:variants .= :if(:lower(@self) == :lower(\''+character_class.lower()+'\'), [\''+skill+'\'], [])')
 
 for skill in skills:
     skill_id = skill.lower().replace(' ', '_')
-    character_abilities_attributes.attributes['class_skills'].add_effect('character.abilities.skills.'+skill_id+' += :array_count(character.abilities.class_skills, \''+skill+'\')')
+    character_abilities_attributes.attributes['class_skills'].add_effect('character.abilities.skill_proficiency.'+skill_id+' += :array_count(character.abilities.class_skills, \''+skill+'\')')
+
+class_skill_amount_formula = 'Z'
+for character_class in skill_amount_by_classes:
+    skill_amount = skill_amount_by_classes[character_class]
+    class_skill_amount_formula = class_skill_amount_formula.replace('Z', ':if(:lower(@self) == :lower(\'X\'), Y, Z)')
+    class_skill_amount_formula = class_skill_amount_formula.replace('X', character_class.lower())
+    class_skill_amount_formula = class_skill_amount_formula.replace('Y', str(skill_amount))
+class_skill_amount_formula = class_skill_amount_formula.replace('Z', '0')
+character_base_attributes.attributes['class'].add_effect('character.abilities.class_skills:choice_amount = '+class_skill_amount_formula)
 
 #endregion
 
@@ -154,8 +183,11 @@ template_data = tb.TemplateData(
 
 #endregion
 
-if (__file__.endswith('.build.py')):
+if __name__ == '__main__':
     template_json_path = __file__[:-9]+'.json'
     #print(tb.dump_data(template_data))
     with open(template_json_path, 'w') as f:
-        json.dump(template_data.parse(), f, indent=2)
+        if ('-compact' in sys.argv[1:]):
+            json.dump(template_data.parse(), f)
+        else:
+            json.dump(template_data.parse(), f, indent=2)

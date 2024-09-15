@@ -23,7 +23,10 @@ const get_attributes = function(attribute, name='', prefix='') {
     if (attribute.hasOwnProperty('_type')) { // it is an attribute
         data[prefix+name] = attribute;
         for (let key in attribute) {
-            if (attribute.hasOwnProperty(key)) attribute[key+'.default'] = attribute[key];
+            if (attribute.hasOwnProperty(key)) {
+                if (attribute[key].constructor === Array) attribute[key + '.default'] = [...attribute[key]];
+                else attribute[key + '.default'] = attribute[key];
+            }
         }
         //data[prefix+name]['_default_value'] = attribute.hasOwnProperty('_value') ? attribute._value : null;
     }
@@ -135,24 +138,7 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
         elementValueLegend.innerText = 'Choose options' +
             (attribute_data.hasOwnProperty('_choice_amount') ? ` (max. ${attribute_data._choice_amount})` : '');
         elementValue.appendChild(elementValueLegend);
-        for (let i in attribute_data._variants) {
-            if (attribute_data._variants.hasOwnProperty(i))
-            {
-                let variant = attribute_data._variants[i];
-                let elementValueDiv = document.createElement('div');
-                let elementValueInput = document.createElement('input');
-                elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
-                elementValueInput.value = variant;
-                elementValueInput.type = 'checkbox';
-                elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
-                elementValueDiv.appendChild(elementValueInput);
-                let elementValueLabel = document.createElement('label');
-                elementValueLabel.htmlFor = elementValueInput.id;
-                elementValueLabel.innerText = variant;
-                elementValueDiv.appendChild(elementValueLabel);
-                elementValue.appendChild(elementValueDiv);
-            }
-        }
+        rerender_array_attribute(attribute_name, elementValue);
     }
     else {
         if (attribute_data.hasOwnProperty('_variants')) {
@@ -177,7 +163,7 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
         }
     }
     elementValue.disabled = !attribute_data._set.includes('manual');
-    elementValue.onchange = update_attribute_values;
+    if (!elementValue.disabled) elementValue.onchange = update_attribute_values;
     elementValue.id = 'attribute-test-frame:'+attribute_name+':value';
     element.appendChild(elementValue);
 
@@ -194,6 +180,7 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
 };
 
 const update_attributes_list = function() {
+    // update attributes list after changing template.
     effect_execution_order = effect_ordering(attributes);
     attributes_frame.innerHTML = '';
     for (let attribute_id in attributes) {
@@ -202,6 +189,33 @@ const update_attributes_list = function() {
     }
 };
 
+const rerender_array_attribute = function(attribute_name, value_element) {
+    while (value_element.childElementCount > 1) value_element.removeChild(value_element.children[1]);
+    let attribute_data = attributes[attribute_name];
+    for (let i in attribute_data._variants) {
+        if (attribute_data._variants.hasOwnProperty(i))
+        {
+            let variant = attribute_data._variants[i];
+            let elementValueDiv = document.createElement('div');
+            let elementValueInput = document.createElement('input');
+            elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
+            elementValueInput.type = 'checkbox';
+            elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
+            elementValueInput.disabled = (!attribute_data._set.includes('manual'));
+            if (attribute_data.hasOwnProperty('_choice_amount')) {
+                if (!elementValueInput.checked && attribute_data._value.length >= attribute_data._choice_amount) elementValueInput.disabled = true;
+            }
+            elementValueDiv.appendChild(elementValueInput);
+            let elementValueLabel = document.createElement('label');
+            elementValueLabel.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i+'label';
+            elementValueLabel.htmlFor = elementValueInput.id;
+            elementValueLabel.innerText = variant;
+            elementValueDiv.appendChild(elementValueLabel);
+            value_element.appendChild(elementValueDiv);
+        }
+    }
+}
+
 const reset_attribute_values = function() {
     // resets attribute values.
     // If set mode is AUTO, sets attribute properties to their default values.
@@ -209,25 +223,28 @@ const reset_attribute_values = function() {
     for (let attribute_name in attributes) {
         if (attributes.hasOwnProperty(attribute_name))
         {
+            for (let property in attributes[attribute_name]) {
+                if (attributes[attribute_name].hasOwnProperty(property) && attributes[attribute_name].hasOwnProperty(property+'.default') && (property !== '_value') && (!property.endsWith('.default'))) {
+                    if (attributes[attribute_name][property+'.default'].constructor === Array) {
+                        attributes[attribute_name][property] = [...attributes[attribute_name][property+'.default']];
+                    }
+                    else attributes[attribute_name][property] = attributes[attribute_name][property+'.default'];
+                }
+            }
             if (attributes[attribute_name]._set.includes('auto'))
             {
-                for (let property in attributes[attribute_name]) {
-                    if (attributes[attribute_name].hasOwnProperty(property) && (!property.endsWith('.default'))) {
-                        if (attributes[attribute_name][property+'.default'].constructor === Array) {
-                            attributes[attribute_name][property] = [...attributes[attribute_name][property+'.default']];
-                        }
-                        else attributes[attribute_name][property] = attributes[attribute_name][property+'.default'];
-                    }
-                }
+                attributes[attribute_name]['_value'] = attributes[attribute_name]['_value.default'];
             }
             else if (attributes[attribute_name]._set.includes('manual'))
             {
                 if (attributes[attribute_name]._type === 'array') {
                     attributes[attribute_name]._value = [];
+                    //attributes[attribute_name]._value = [];
                     let elementValue = document.getElementById('attribute-test-frame:'+attribute_name+':value');
-                    for (let i = 1; i < elementValue.childElementCount; i++) {
-                        let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+(i-1));
-                        if (elementValueInput.checked) attributes[attribute_name]._value.push(elementValueInput.value);
+                    for (let i = 0; i < elementValue.childElementCount-1; i++) {
+                        let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i);
+                        let elementValueLabel = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i+'label');
+                        if (elementValueInput.checked) attributes[attribute_name]._value.push(elementValueLabel.innerText);
                     }
                 }
                 else {
@@ -239,7 +256,6 @@ const reset_attribute_values = function() {
                         attributes[attribute_name]._value = Number(attributes[attribute_name]._value);
                     }
                 }
-
             }
         }
     }
@@ -257,34 +273,24 @@ const execute_effects = function() {
     }
 };
 
+const post_effects_cleanup = function() {
+    for (let attribute_name in attributes) {
+        if (attributes.hasOwnProperty(attribute_name)) {
+            if (attributes[attribute_name]._type === 'array') {
+                attributes[attribute_name]._value = attributes[attribute_name]._value.filter(
+                    (value)=>(attributes[attribute_name]._variants.includes(value))
+                );
+            }
+        }
+    }
+}
+
 const render_values = function() {
     for (let attribute_name in attributes) {
         if (attributes.hasOwnProperty(attribute_name)) {
             let value_element = document.getElementById('attribute-test-frame:'+attribute_name+':value');
             if (attributes[attribute_name]._type === 'array') {
-                for (let child_element of value_element.children) {
-                    if (child_element.tagName.toLowerCase() !== 'legend') {
-                        value_element.removeChild(child_element);
-                    }
-                }
-                let attribute_data = attributes[attribute_name];
-                for (let i in attribute_data._variants) {
-                    if (attribute_data._variants.hasOwnProperty(i))
-                    {
-                        let variant = attribute_data._variants[i];
-                        let elementValueDiv = document.createElement('div');
-                        let elementValueInput = document.createElement('input');
-                        elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
-                        elementValueInput.type = 'checkbox';
-                        elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
-                        elementValueDiv.appendChild(elementValueInput);
-                        let elementValueLabel = document.createElement('label');
-                        elementValueLabel.htmlFor = elementValueInput.id;
-                        elementValueLabel.innerText = variant;
-                        elementValueDiv.appendChild(elementValueLabel);
-                        value_element.appendChild(elementValueDiv);
-                    }
-                }
+                rerender_array_attribute(attribute_name, value_element);
             }
             else {
                 value_element.value = attributes[attribute_name]._value;
@@ -294,9 +300,10 @@ const render_values = function() {
 };
 
 const update_attribute_values = function() {
+    // call when some attribute were changed manually
     reset_attribute_values();
     execute_effects();
-    console.log(attributes['character.abilities.class_skills']);
+    post_effects_cleanup();
     render_values();
 };
 
