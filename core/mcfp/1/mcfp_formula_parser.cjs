@@ -33,7 +33,7 @@ const mfp = function(mfb, mss, mvc, mse) {
 
     this.parse = function(string) {
         let formula_parts = mss.split_operators(string);
-        if (formula_parts === null || formula_parts === undefined) return 300;
+        if (formula_parts === null || formula_parts === undefined) return null;
         if (formula_parts.length === 1) return this.parse_value(formula_parts[0]);
         if (formula_parts[0] === '-') formula_parts.splice(0, 2, ':neg('+formula_parts[1]+')');
         for (let operators of this.operators_by_priority) {
@@ -59,8 +59,26 @@ const mfp = function(mfb, mss, mvc, mse) {
         if (string[0] === '(') { // embedding
             return this.parse(mse.get_embedding(string, 0));
         }
+        if (string[0] === '[') { // array
+            let blocks = [];
+            let array_content = mse.get_embedding(string, 0);
+            if (array_content === null) return null;
+            if (array_content === '') return new mfb.Array();
+            let array_elements = mss.split_arguments(array_content, 0);
+            if (array_elements === null) return null;
+            for (let element of array_elements) {
+                let block = this.parse(element);
+                if (block === null) return null;
+                blocks.push(block);
+            }
+            return new mfb.Array(...blocks);
+        }
         else if (mvc.check_attribute(string)) { // attribute reference
             return new mfb.AttributeReference(string);
+        }
+        else if (mvc.check_attribute_property(string)) { // attribute's property reference
+            let [attribute_id, attribute_property] = string.split(':');
+            return new mfb.AttributeReference(attribute_id, property=attribute_property);
         }
         else if (mvc.check_number(string)) { // number
             return new mfb.ConstantValue(Number(string));
@@ -78,7 +96,9 @@ const mfp = function(mfb, mss, mvc, mse) {
                 else function_name += string[l++];
             }
             let blocks = [];
-            for (let argument of mss.split_arguments(arguments, 0)) {
+            let split_arguments = mss.split_arguments(arguments, 0);
+            if (split_arguments === null) return null;
+            for (let argument of split_arguments) {
                 let block = this.parse(argument);
                 if (block === null) return null;
                 blocks.push(block);

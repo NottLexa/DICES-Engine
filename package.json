@@ -7,7 +7,7 @@
   },
   "version": "1.0.0",
   "main": "run_nwjs.js",
-  "chromium-args": "--disable-devtools --enable-logging=stderr",
+  "chromium-args": "--enable-logging=stderr",
   "devDependencies": {
     "nw": "^0.91.0",
     "nw-builder": "^4.10.0",

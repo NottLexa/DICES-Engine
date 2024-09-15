@@ -6,8 +6,9 @@ const mfb = function() {
     this.ConstantValue = function(value) {
         this.value = value;
     }
-    this.AttributeReference = function(attribute_name) {
+    this.AttributeReference = function(attribute_name, property = undefined) {
         this.attribute = attribute_name;
+        this.property = property;
     }
     this.Function = function(function_name, ...args) {
         this.function = function_name;
@@ -15,6 +16,10 @@ const mfb = function() {
     }
 
     this.SelfReference = function() {
+    }
+
+    this.Array = function(...array) {
+        this.array = array;
     }
 }
 

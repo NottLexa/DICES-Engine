@@ -6,11 +6,12 @@ SET_AUTO = 'auto'
 TYPE_STRING = 'string'
 TYPE_INTEGER = 'integer'
 TYPE_BOOLEAN = 'boolean'
+TYPE_ARRAY = 'array'
 
 class Attribute:
     def __init__(self, type: str = '', name: str = '', set: list[str] = None, value = None, hidden: bool = False,
                  dices: list[str] = None, variants: list[str] = None, effects: list[str] = None, value_min = None,
-                 value_max = None):
+                 value_max = None, blocked: bool = False, choice_amount: int = None):
         self.type = type
         self.name = name
         self.set = set
@@ -21,12 +22,15 @@ class Attribute:
         self.effects = effects
         self.value_min = value_min
         self.value_max = value_max
+        self.blocked = blocked
+        self.choice_amount = choice_amount
     def add_effect(self, effect_string):
         if self.effects is None:
             self.effects = []
         self.effects.append(effect_string)
     def parse(self):
-        attribute_properties = ['type', 'name', 'set', 'value', 'hidden', 'dices', 'variants', 'effects']
+        attribute_properties = ['type', 'name', 'set', 'value', 'hidden', 'dices', 'variants', 'effects', 'value_min',
+            'value_max', 'blocked', 'choice_amount']
         ret = {}
         for attribute_property in attribute_properties:
             if getattr(self, attribute_property) is not None:

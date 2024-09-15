@@ -16,12 +16,16 @@ var server = '127.0.0.1:63342';
 var template_list = [];
 
 var attributes = {};
+var effect_execution_order = [];
 
 const get_attributes = function(attribute, name='', prefix='') {
     let data = {};
     if (attribute.hasOwnProperty('_type')) { // it is an attribute
         data[prefix+name] = attribute;
-        data[prefix+name]['_default_value'] = attribute.hasOwnProperty('_value') ? attribute._value : null;
+        for (let key in attribute) {
+            if (attribute.hasOwnProperty(key)) attribute[key+'.default'] = attribute[key];
+        }
+        //data[prefix+name]['_default_value'] = attribute.hasOwnProperty('_value') ? attribute._value : null;
     }
     else { // must be a recursive attribute tree
         for (let key in attribute) {
@@ -31,7 +35,7 @@ const get_attributes = function(attribute, name='', prefix='') {
         }
     }
     return data;
-}
+};
 
 const change_template = function(option_element) {
     let template_index = option_element.value;
@@ -39,22 +43,25 @@ const change_template = function(option_element) {
     for (let attribute_name in attributes) {
         let attribute = attributes[attribute_name];
         if (attribute.hasOwnProperty('_effects')) {
-            let temporary_effects = attribute._effects;
+            let effect_strings = attribute._effects;
             attribute._effects = [];
-            for (let i in temporary_effects) {
-                if (temporary_effects.hasOwnProperty(i)) {
-                    let effect = mcfp.parse_effect(temporary_effects[i]);
+            for (let i in effect_strings) {
+                if (effect_strings.hasOwnProperty(i)) {
+                    let effect = mcfp.parse_effect(effect_strings[i]);
+                    //console.log(effect);
                     if (effect.conclusion === 0) {
-                        let converted_effect = mcfp.js_convert(effect.target_attribute, effect.formula_block, effect.effect_type);
-                        console.log(converted_effect.function);
+                        let converted_effect = mcfp.js_convert(effect.target_attribute, effect.formula_block, effect.effect_type, effect.target_attribute_property);
+                        //console.log(converted_effect.function);
                         attribute._effects.push(converted_effect);
                     }
                 }
             }
+            attribute['_effects.default'] = [...attribute['_effects']];
         }
+        //console.log([attribute_name, JSON.stringify(attribute)]);
     }
     update_attributes_list();
-}
+};
 
 const update_templates_list = async function() {
     if (platform === 'NODE') {
@@ -109,7 +116,7 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
     if (attribute_data._type === 'boolean')
     {
         elementValue = document.createElement('select');
-        elementValue.innerHTML = String(attribute_data._value);
+        //elementValue.innerHTML = String(attribute_data._value);
         let elementValueTrue = document.createElement('option');
         elementValueTrue.value = 'true';
         elementValueTrue.innerText = 'true';
@@ -122,29 +129,72 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
         elementValue.appendChild(elementValueFalse);
         elementValue.value = attribute_data._value;
     }
+    else if (attribute_data._type === 'array') {
+        elementValue = document.createElement('fieldset');
+        let elementValueLegend = document.createElement('legend');
+        elementValueLegend.innerText = 'Choose options' +
+            (attribute_data.hasOwnProperty('_choice_amount') ? ` (max. ${attribute_data._choice_amount})` : '');
+        elementValue.appendChild(elementValueLegend);
+        for (let i in attribute_data._variants) {
+            if (attribute_data._variants.hasOwnProperty(i))
+            {
+                let variant = attribute_data._variants[i];
+                let elementValueDiv = document.createElement('div');
+                let elementValueInput = document.createElement('input');
+                elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
+                elementValueInput.value = variant;
+                elementValueInput.type = 'checkbox';
+                elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
+                elementValueDiv.appendChild(elementValueInput);
+                let elementValueLabel = document.createElement('label');
+                elementValueLabel.htmlFor = elementValueInput.id;
+                elementValueLabel.innerText = variant;
+                elementValueDiv.appendChild(elementValueLabel);
+                elementValue.appendChild(elementValueDiv);
+            }
+        }
+    }
     else {
-        elementValue = document.createElement('input');
-        if (attribute_data._type === 'integer') {
-            elementValue.type = 'number';
+        if (attribute_data.hasOwnProperty('_variants')) {
+            elementValue = document.createElement('select');
+            //elementValue.innerHTML = String(attribute_data._value);
+            for (let variant of attribute_data._variants) {
+                let elementValueOption = document.createElement('option');
+                elementValueOption.value = variant;
+                elementValueOption.innerText = variant;
+                elementValue.appendChild(elementValueOption);
+            }
         }
         else {
-            elementValue.type = 'text';
+            elementValue = document.createElement('input');
+            if (attribute_data._type === 'integer') {
+                elementValue.type = 'number';
+            }
+            else {
+                elementValue.type = 'text';
+            }
+            elementValue.value = attribute_data._value;
         }
-        elementValue.value = attribute_data._value;
     }
     elementValue.disabled = !attribute_data._set.includes('manual');
+    elementValue.onchange = update_attribute_values;
+    elementValue.id = 'attribute-test-frame:'+attribute_name+':value';
     element.appendChild(elementValue);
 
     let elementAttributeID = document.createElement('a');
     elementAttributeID.innerText = attribute_name;
     elementAttributeID.style = 'opacity: 0.5; font-size: 80%';
-    elementAttributeID.title = attribute_data.hasOwnProperty('_effects') ? attribute_data._effects.map((value)=>(value.function.toString())).join('\n\n\n') : undefined;
+    elementAttributeID.title = attribute_data.hasOwnProperty('_effects') ? attribute_data._effects.map((value)=>(value.function.toString())).join('\n\n\n') : '(no effects)';
+    elementAttributeID.addEventListener('click', ()=>{
+        console.log(attribute_name+': '+(attribute_data.hasOwnProperty('_effects') ? attribute_data._effects.map((value)=>(value.function.toString())).join('\n\n\n') : '(no effects)'));
+    })
     element.appendChild(elementAttributeID);
 
     return element;
-}
+};
 
 const update_attributes_list = function() {
+    effect_execution_order = effect_ordering(attributes);
     attributes_frame.innerHTML = '';
     for (let attribute_id in attributes) {
         let attribute = attributes[attribute_id];
@@ -152,26 +202,40 @@ const update_attributes_list = function() {
     }
 };
 
-const update_attribute_values = function() {
-    let effect_execution_order = effect_ordering(attributes);
-    //console.log(JSON.stringify(effect_execution_order));
+const reset_attribute_values = function() {
+    // resets attribute values.
+    // If set mode is AUTO, sets attribute properties to their default values.
+    // If set mode is MANUAL, sets attribute's value to set value in HTML input element.
     for (let attribute_name in attributes) {
         if (attributes.hasOwnProperty(attribute_name))
         {
             if (attributes[attribute_name]._set.includes('auto'))
             {
-                attributes[attribute_name]._value = attributes[attribute_name]._default_value;
+                for (let property in attributes[attribute_name]) {
+                    if (attributes[attribute_name].hasOwnProperty(property) && (!property.endsWith('.default'))) {
+                        if (attributes[attribute_name][property+'.default'].constructor === Array) {
+                            attributes[attribute_name][property] = [...attributes[attribute_name][property+'.default']];
+                        }
+                        else attributes[attribute_name][property] = attributes[attribute_name][property+'.default'];
+                    }
+                }
             }
             else if (attributes[attribute_name]._set.includes('manual'))
             {
-                let element = document.getElementById('attribute-test-frame:'+attribute_name);
-                if (attributes[attribute_name]._type === 'boolean') {
-                    attributes[attribute_name]._value = element.getElementsByTagName('select')[0].value;
-                    attributes[attribute_name]._value = attributes[attribute_name]._value === 'true';
+                if (attributes[attribute_name]._type === 'array') {
+                    attributes[attribute_name]._value = [];
+                    let elementValue = document.getElementById('attribute-test-frame:'+attribute_name+':value');
+                    for (let i = 1; i < elementValue.childElementCount; i++) {
+                        let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+(i-1));
+                        if (elementValueInput.checked) attributes[attribute_name]._value.push(elementValueInput.value);
+                    }
                 }
                 else {
-                    attributes[attribute_name]._value = element.getElementsByTagName('input')[0].value;
-                    if (attributes[attribute_name]._type === 'integer') {
+                    attributes[attribute_name]._value = document.getElementById('attribute-test-frame:'+attribute_name+':value').value;
+                    if (attributes[attribute_name]._type === 'boolean') {
+                        attributes[attribute_name]._value = attributes[attribute_name]._value === 'true';
+                    }
+                    else if (attributes[attribute_name]._type === 'integer') {
                         attributes[attribute_name]._value = Number(attributes[attribute_name]._value);
                     }
                 }
@@ -179,31 +243,62 @@ const update_attribute_values = function() {
             }
         }
     }
+};
+
+const execute_effects = function() {
     for (let attribute_executing_effects_name of effect_execution_order) {
         let attribute_executing_effects = attributes[attribute_executing_effects_name];
         if (attribute_executing_effects.hasOwnProperty('_effects')) {
             for (let effect of attribute_executing_effects['_effects']) {
                 // effect.function = function(attributes, functions, self_attribute){...}
-                //console.log(effect.function);
                 effect.function(attributes, effect_functions, attribute_executing_effects_name);
             }
         }
     }
+};
+
+const render_values = function() {
     for (let attribute_name in attributes) {
         if (attributes.hasOwnProperty(attribute_name)) {
-            let element = document.getElementById('attribute-test-frame:'+attribute_name);
-            if (attributes[attribute_name]._type === 'boolean')
-            {
-                element.getElementsByTagName('select')[0].value = attributes[attribute_name]._value;
-                console.log(attribute_name+element.getElementsByTagName('select')[0].value);
+            let value_element = document.getElementById('attribute-test-frame:'+attribute_name+':value');
+            if (attributes[attribute_name]._type === 'array') {
+                for (let child_element of value_element.children) {
+                    if (child_element.tagName.toLowerCase() !== 'legend') {
+                        value_element.removeChild(child_element);
+                    }
+                }
+                let attribute_data = attributes[attribute_name];
+                for (let i in attribute_data._variants) {
+                    if (attribute_data._variants.hasOwnProperty(i))
+                    {
+                        let variant = attribute_data._variants[i];
+                        let elementValueDiv = document.createElement('div');
+                        let elementValueInput = document.createElement('input');
+                        elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
+                        elementValueInput.type = 'checkbox';
+                        elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
+                        elementValueDiv.appendChild(elementValueInput);
+                        let elementValueLabel = document.createElement('label');
+                        elementValueLabel.htmlFor = elementValueInput.id;
+                        elementValueLabel.innerText = variant;
+                        elementValueDiv.appendChild(elementValueLabel);
+                        value_element.appendChild(elementValueDiv);
+                    }
+                }
             }
             else {
-                element.getElementsByTagName('input')[0].value = attributes[attribute_name]._value;
-                console.log(attribute_name+element.getElementsByTagName('input')[0].value);
+                value_element.value = attributes[attribute_name]._value;
             }
         }
     }
-}
+};
+
+const update_attribute_values = function() {
+    reset_attribute_values();
+    execute_effects();
+    console.log(attributes['character.abilities.class_skills']);
+    render_values();
+};
 
 const init = async function() {
     await update_templates_list();
@@ -217,6 +312,6 @@ const run = async function() {
         await init();
         nw.Window.get().show();
     }
-}
+};
 
 run();

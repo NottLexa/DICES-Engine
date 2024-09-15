@@ -17,6 +17,10 @@ var functions = {
     if: (cond, a, b) => (cond ? a : b),
     lower: (a) => (a.toLowerCase()),
     upper: (a) => (a.toUpperCase()),
+    array_includes: (array, element) => (array.includes(element)),
+    array_length: (array) => (array.length),
+    array_count: (array, element) => (array.filter((value)=>(value===element)).length),
+    array_add: (array1, array2) => (array1.concat(array2)),
 };
 
 module.exports = {functions};
