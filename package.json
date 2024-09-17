@@ -1,9 +1,9 @@
 {
-  "name": "marecreator",
+  "name": "dices-engine",
   "license": "SEE LICENSE IN COPYING",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NottLexa/MareCreator"
+    "url": "https://github.com/NottLexa/DICES-Engine"
   },
   "version": "1.0.0",
   "main": "run_nwjs.js",
