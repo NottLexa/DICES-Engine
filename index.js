@@ -308,18 +308,13 @@ const reset_attribute_values = function() {
 
 const execute_effects = function() {
     dices_object.reset_pointers();
-    for (let attribute_executing_effects_name of effect_execution_order) {
-        let attribute_executing_effects = attributes[attribute_executing_effects_name];
-        if (attribute_executing_effects.hasOwnProperty('_effects')) {
-            for (let effect_index in attribute_executing_effects['_effects']) {
-                if (attribute_executing_effects['_effects'].hasOwnProperty(effect_index)) {
-                    let effect = attribute_executing_effects['_effects'][effect_index];
-                    let dices_iterator = dices_object.get_iterator(attribute_executing_effects_name, effect_index);
-                    effect.function(attributes, effect_functions, attribute_executing_effects_name, dices_iterator);
-                }
-                // effect.function = function(attributes, functions, self_attribute){...}
-            }
-        }
+    for (let effect_path of effect_execution_order) {
+        let [executing_attribute_name, effect_index] = effect_path.split(':');
+        effect_index = Number(effect_index);
+        let executing_attribute = attributes[executing_attribute_name];
+        let effect = executing_attribute._effects[effect_index];
+        let dices_iterator = dices_object.get_iterator(executing_attribute_name, effect_index);
+        effect.function(attributes, effect_functions, executing_attribute_name, dices_iterator);
     }
 };
 
