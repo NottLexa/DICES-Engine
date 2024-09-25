@@ -21,6 +21,11 @@ const mfb = function() {
     this.Array = function(...array) {
         this.array = array;
     }
+
+    this.Dice = function(amount, magnitude) {
+        this.amount = amount;
+        this.magnitude = magnitude;
+    }
 }
 
 module.exports = {mfb};

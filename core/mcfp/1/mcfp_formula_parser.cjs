@@ -53,82 +53,103 @@ const mfp = function(mfb, mss, mvc, mse) {
         }
         if (formula_parts.length === 1) return this.parse_value(formula_parts[0]);
         return null;
-    }
+    };
+
     this.parse_value = function(string) {
-        //console.log(JSON.stringify(string));
-        if (string[0] === '(') { // embedding
-            return this.parse(mse.get_embedding(string, 0));
-        }
-        if (string[0] === '[') { // array
-            let blocks = [];
-            let array_content = mse.get_embedding(string, 0);
-            if (array_content === null) return null;
-            if (array_content === '') return new mfb.Array();
-            let array_elements = mss.split_arguments(array_content, 0);
-            if (array_elements === null) return null;
-            for (let element of array_elements) {
-                let block = this.parse(element);
-                if (block === null) return null;
-                blocks.push(block);
-            }
-            return new mfb.Array(...blocks);
-        }
-        else if (mvc.check_attribute(string)) { // attribute reference
-            return new mfb.AttributeReference(string);
-        }
-        else if (mvc.check_attribute_property(string)) { // attribute's property reference
-            let [attribute_id, attribute_property] = string.split(':');
-            return new mfb.AttributeReference(attribute_id, property=attribute_property);
-        }
-        else if (mvc.check_number(string)) { // number
-            return new mfb.ConstantValue(Number(string));
-        }
-        else if (string[0] === ':') { // function
-            let arguments;
-            let function_name = '';
-            let l = 1;
-            while (l < string.length) {
-                if (string[l] === '(') {
-                    arguments = mse.get_embedding(string, l);
-                    if (arguments === null) return null;
-                    break;
+        switch (string[0]) { // try to guess value type by first character
+            case '(': // embedding
+                return this.parse(mse.get_embedding(string, 0));
+            case '[': // array
+                return this.parse_array(string);
+            case ':': // function
+                return this.parse_function(string);
+            case '@': // special value
+                if (string.startsWith('@dice')) return this.parse_complex_dice(string);
+                switch (string) {
+                    case '@self': return new mfb.SelfReference();
+                    case '@true': return new mfb.ConstantValue(true);
+                    case '@false': return new mfb.ConstantValue(false);
+                    default: return null;
                 }
-                else function_name += string[l++];
-            }
-            let blocks = [];
-            let split_arguments = mss.split_arguments(arguments, 0);
-            if (split_arguments === null) return null;
-            for (let argument of split_arguments) {
-                let block = this.parse(argument);
-                if (block === null) return null;
-                blocks.push(block);
-            }
-            return new mfb.Function(function_name, ...blocks);
+            case '"': // string (double quote mark)
+            case "'": // string (single quote mark)
+                let embedded_string = (string[0] === '"'
+                    ? mse.get_embedding_doublequotemark              // if ", use get_embedding_doublequotemark
+                    : mse.get_embedding_singlequotemark)(string, 0); // if ', use get_embedding_singlequotemark
+                if (embedded_string === null) return null;
+                return new mfb.ConstantValue(embedded_string);
+            default: // if type is defined not by first character
+                if (mvc.check_attribute(string)) { // attribute reference
+                    return new mfb.AttributeReference(string);
+                }
+                else if (mvc.check_attribute_property(string)) { // attribute's property reference
+                    let [attribute_id, attribute_property] = string.split(':');
+                    return new mfb.AttributeReference(attribute_id, property=attribute_property);
+                }
+                else if (mvc.check_number(string)) { // number
+                    return new mfb.ConstantValue(Number(string));
+                }
+                else if (mvc.check_dice(string)) { // simple dice
+                    let [dice_amount, dice_magnitude] = string.split('d');
+                    return new mfb.SimpleDice(this.parse_value(dice_amount), this.parse_value(dice_magnitude));
+                }
+                return null;
         }
-        else if (string[0] === '@') { // special value
-            if (string === '@self') {
-                return new mfb.SelfReference();
-            }
-            else if (string === '@true') {
-                return new mfb.ConstantValue(true);
-            }
-            else if (string === '@false') {
-                return new mfb.ConstantValue(false);
-            }
-            else return null;
+    };
+
+    this.parse_array = function(string) {
+        let blocks = [];
+        let array_content = mse.get_embedding(string, 0);
+        if (array_content === null) return null;
+        if (array_content === '') return new mfb.Array();
+        let array_elements = mss.split_arguments(array_content, 0);
+        if (array_elements === null) return null;
+        for (let element of array_elements) {
+            let block = this.parse(element);
+            if (block === null) return null;
+            blocks.push(block);
         }
-        else if (string[0] === "'") { // string value (single quote mark)
-            let embedded_string = mse.get_embedding_singlequotemark(string, 0);
-            if (embedded_string === null) return null;
-            return new mfb.ConstantValue(embedded_string);
+        return new mfb.Array(...blocks);
+    };
+
+    this.parse_arguments = function(string) {
+        let blocks = [];
+        let split_arguments = mss.split_arguments(string, 0);
+        if (split_arguments === null) return null;
+        for (let argument of split_arguments) {
+            let block = this.parse(argument);
+            if (block === null) return null;
+            blocks.push(block);
         }
-        else if (string[0] === '"') { // string value (double quote mark)
-            let embedded_string = mse.get_embedding_doublequotemark(string, 0);
-            if (embedded_string === null) return null;
-            return new mfb.ConstantValue(embedded_string);
-        }
-        return null;
+        return blocks;
     }
+
+    this.parse_function = function(string) {
+        let arguments;
+        let function_name = '';
+        let l = 1;
+        while (l < string.length) {
+            if (string[l] === '(') {
+                arguments = mse.get_embedding(string, l);
+                if (arguments === null) return null;
+                break;
+            }
+            else function_name += string[l++];
+        }
+        let blocks = this.parse_arguments(arguments);
+        if (blocks === null) return null;
+        return new mfb.Function(function_name, ...blocks);
+    };
+
+    this.parse_complex_dice = function(string) {
+        if (!string.startsWith('@dice')) return null;
+        let arguments = mse.get_embedding(string, 5);
+        if (arguments === null) return null;
+        let blocks = this.parse_arguments(arguments);
+        if (blocks === null) return null;
+        if (blocks.length < 2) return null;
+        return new mfb.Dice(...blocks);
+    };
 }
 
 module.exports = {mfp};
