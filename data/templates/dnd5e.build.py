@@ -69,6 +69,20 @@ skill_amount_by_classes = {
     'Ranger': 3,
     'Sorcerer': 2}
 
+hit_dices_by_classes = {
+    'Bard': 8,
+    'Barbarian': 12,
+    'Fighter': 10,
+    'Wizard': 6,
+    'Druid': 8,
+    'Cleric': 8,
+    'Warlock': 8,
+    'Monk': 8,
+    'Paladin': 10,
+    'Rogue': 8,
+    'Ranger': 10,
+    'Sorcerer': 6}
+
 #endregion
 
 #region [Character's attributes]
@@ -86,6 +100,9 @@ character_base_attributes = tb.AttributeTree(
     level = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Level', set = [tb.SET_MANUAL], value = 1,
         effects = ['character.abilities.proficiency_bonus += :ceil(@self/4) + 1']),
 )
+
+class_attribute: tb.Attribute = character_base_attributes.attributes['class']
+level_attribute: tb.Attribute = character_base_attributes.attributes['level']
 
 #endregion
 
@@ -131,13 +148,11 @@ for ability in skills_by_abilities:
 
 for character_class in saving_throws_by_classes:
     for saving_throw in saving_throws_by_classes[character_class]:
-        class_attribute: tb.Attribute = character_base_attributes.attributes['class']
         class_attribute.add_effect('character.abilities.bonuses.'+saving_throw.lower()+' ||= (:lower(@self) == :lower(\''+str(character_class.lower())+'\'))')
 
 for character_class in skills_by_classes:
     for skill in skills_by_classes[character_class]:
         skill_id = skill.lower().replace(' ', '_')
-        class_attribute: tb.Attribute = character_base_attributes.attributes['class']
         class_attribute.add_effect('character.abilities.class_skills:variants .= :if(:lower(@self) == :lower(\''+character_class.lower()+'\'), [\''+skill+'\'], [])')
 
 for skill in skills:
@@ -151,7 +166,23 @@ for character_class in skill_amount_by_classes:
     class_skill_amount_formula = class_skill_amount_formula.replace('X', character_class.lower())
     class_skill_amount_formula = class_skill_amount_formula.replace('Y', str(skill_amount))
 class_skill_amount_formula = class_skill_amount_formula.replace('Z', '0')
-character_base_attributes.attributes['class'].add_effect('character.abilities.class_skills:choice_amount = '+class_skill_amount_formula)
+class_attribute.add_effect('character.abilities.class_skills:choice_amount = '+class_skill_amount_formula)
+
+#endregion
+
+#region [Physical]
+
+character_physical_attributes = tb.AttributeTree(
+    armor_class = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Armor Class', set = [tb.SET_AUTO], value = 0),
+    speed = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Speed', set = [tb.SET_MANUAL], value = 0),
+    max_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Max HP', set = [tb.SET_AUTO], value = 0)
+)
+
+for character_class in hit_dices_by_classes:
+    hit_dice = hit_dices_by_classes[character_class]
+    max_hp_by_level_formula = f':if(:lower(character.base.class) == :lower(\'{character_class}\'), :max(1, X+character.abilities.modifiers.constitution), 0)'
+    max_hp_by_level_formula = max_hp_by_level_formula.replace('X', str(hit_dice)+f'+@dice(@self-1, {hit_dice})')
+    level_attribute.add_effect('character.physical.max_hp += '+max_hp_by_level_formula)
 
 #endregion
 
@@ -166,7 +197,8 @@ character_base_attributes.attributes['class'].add_effect('character.abilities.cl
 attributes = tb.AttributeTree(
     character = tb.AttributeTree(
         base = character_base_attributes,
-        abilities = character_abilities_attributes
+        abilities = character_abilities_attributes,
+        physical = character_physical_attributes
     ),
     classes = tb.AttributeTree(
         warrior = tb.AttributeTree(

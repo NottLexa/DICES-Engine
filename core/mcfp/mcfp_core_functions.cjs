@@ -6,6 +6,8 @@ var functions = {
     floor: (a) => (Math.floor(a)),
     ceil: (a) => (Math.ceil(a)),
     round: (a) => (Math.round(a)),
+    min: (...values) => (Math.min(...values)),
+    max: (...values) => (Math.max(...values)),
     and: (a, b) => (a && b),
     or: (a, b) => (a || b),
     eq: (a, b) => (a === b),
@@ -21,6 +23,8 @@ var functions = {
     array_length: (array) => (array.length),
     array_count: (array, element) => (array.filter((value)=>(value===element)).length),
     array_add: (array1, array2) => (array1.concat(array2)),
+    array_min: (array) => (Math.min(...array)),
+    array_max: (array) => (Math.max(...array)),
 };
 
 module.exports = {functions};
