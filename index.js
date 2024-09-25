@@ -12,11 +12,55 @@ const mcfp = require('./core/mcfp/1/main.cjs');
 const {effect_ordering} = require('./core/effect_ordering.cjs');
 const effect_functions = require('./core/mcfp/mcfp_core_functions.cjs').functions;
 
+const randint = function(min, max) {
+    return min + Math.floor(Math.random() * (max-min+1))
+}
+
 var server = '127.0.0.1:63342';
 var template_list = [];
 
 var attributes = {};
 var effect_execution_order = [];
+var dices_object = {
+    attributes: {},
+    get_iterator: function(attribute_name, effect_index) {
+        if (!dices_object.attributes.hasOwnProperty(attribute_name)) dices_object.attributes[attribute_name] = {};
+        if (!dices_object.attributes[attribute_name].hasOwnProperty(effect_index)) {
+            dices_object.attributes[attribute_name][effect_index] = new dices_iterator();
+        }
+        return dices_object.attributes[attribute_name][effect_index];
+    },
+    reset_pointers: function() {
+        for (let attribute_name in dices_object.attributes) {
+            if (dices_object.attributes.hasOwnProperty(attribute_name)) {
+                for (let effect_index in dices_object.attributes[attribute_name]) {
+                    if (dices_object.attributes[attribute_name].hasOwnProperty(effect_index)) {
+                        dices_object.attributes[attribute_name][effect_index].reset_pointers();
+                    }
+                }
+            }
+        }
+    },
+};
+const dices_iterator = function() {
+    this.pointers = {};
+    this.magnitudes = {};
+    this.reset_pointers = function() {
+        for (let key in this.pointers) {
+            if (this.pointers.hasOwnProperty(key)) this.pointers[key] = 0;
+        }
+    }
+    this.clear = function() {
+        this.pointers = {};
+        this.magnitudes = {};
+    }
+    this.get = function(magnitude) {
+        if (!this.magnitudes.hasOwnProperty(magnitude)) this.magnitudes[magnitude] = [];
+        if (!this.pointers.hasOwnProperty(magnitude)) this.pointers[magnitude] = 0;
+        while (this.magnitudes[magnitude].length <= this.pointers[magnitude]) this.magnitudes[magnitude].push(randint(1, magnitude));
+        return this.magnitudes[magnitude][this.pointers[magnitude]++];
+    }
+};
 
 const get_attributes = function(attribute, name='', prefix='') {
     let data = {};
@@ -187,6 +231,7 @@ const update_attributes_list = function() {
         let attribute = attributes[attribute_id];
         attributes_frame.appendChild(create_attribute_test_frame(attribute, attribute_id));
     }
+    update_attribute_values();
 };
 
 const rerender_array_attribute = function(attribute_name, value_element) {
@@ -262,12 +307,17 @@ const reset_attribute_values = function() {
 };
 
 const execute_effects = function() {
+    dices_object.reset_pointers();
     for (let attribute_executing_effects_name of effect_execution_order) {
         let attribute_executing_effects = attributes[attribute_executing_effects_name];
         if (attribute_executing_effects.hasOwnProperty('_effects')) {
-            for (let effect of attribute_executing_effects['_effects']) {
+            for (let effect_index in attribute_executing_effects['_effects']) {
+                if (attribute_executing_effects['_effects'].hasOwnProperty(effect_index)) {
+                    let effect = attribute_executing_effects['_effects'][effect_index];
+                    let dices_iterator = dices_object.get_iterator(attribute_executing_effects_name, effect_index);
+                    effect.function(attributes, effect_functions, attribute_executing_effects_name, dices_iterator);
+                }
                 // effect.function = function(attributes, functions, self_attribute){...}
-                effect.function(attributes, effect_functions, attribute_executing_effects_name);
             }
         }
     }
