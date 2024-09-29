@@ -199,6 +199,8 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
             elementValue = document.createElement('input');
             if (attribute_data._type === 'integer') {
                 elementValue.type = 'number';
+                if (attribute_data.hasOwnProperty('_value_min')) elementValue.min = attribute_data._value_min;
+                if (attribute_data.hasOwnProperty('_value_max')) elementValue.max = attribute_data._value_max;
             }
             else {
                 elementValue.type = 'text';
