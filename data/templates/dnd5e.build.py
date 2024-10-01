@@ -216,10 +216,5 @@ template_data = tb.TemplateData(
 #endregion
 
 if __name__ == '__main__':
-    template_json_path = __file__[:(-9 if __file__.endswith('.build.py') else -3)]+'.json'
-    #print(tb.dump_data(template_data))
-    with open(template_json_path, 'w') as f:
-        if ('-compact' in sys.argv[1:]):
-            json.dump(template_data.parse(), f)
-        else:
-            json.dump(template_data.parse(), f, indent=2)
+    with open(__file__[:(-9 if __file__.endswith('.build.py') else -3)]+'.json', 'w') as f:
+        json.dump(template_data.parse(), f, indent=(None if '-compact' in sys.argv[1:] else 2))
