@@ -60,6 +60,17 @@ const dices_iterator = function() {
         while (this.magnitudes[magnitude].length <= this.pointers[magnitude]) this.magnitudes[magnitude].push(randint(1, magnitude));
         return this.magnitudes[magnitude][this.pointers[magnitude]++];
     }
+    this.reroll = function(magnitude, index) {
+        if (!this.magnitudes.hasOwnProperty(magnitude)) this.magnitudes[magnitude] = [];
+        if (!this.pointers.hasOwnProperty(magnitude)) this.pointers[magnitude] = 0;
+        while (this.magnitudes[magnitude].length <= index) this.magnitudes[magnitude].push(randint(1, magnitude));
+        this.magnitudes[magnitude][index] = randint(1, magnitude);
+    }
+    this.reroll_all = function(magnitude) {
+        for (let index = 0; index < this.magnitudes[magnitude].length; index++) {
+            this.magnitudes[magnitude][index] = randint(1, magnitude);
+        }
+    }
 };
 
 const get_attributes = function(attribute, name='', prefix='') {
