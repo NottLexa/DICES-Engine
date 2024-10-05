@@ -1,4 +1,4 @@
-// by NotLexa & arkain123
+// by NotLexa
 
 const platform = document.getElementById('script').hasAttribute('platform')
     ? document.getElementById('script').getAttribute('platform') : 'WEB';
@@ -8,115 +8,26 @@ var templates_select_list = document.getElementById('templates_select_list');
 
 var fs, path;
 
-const mcfp = require('./core/mcfp/1/main.cjs');
-const {effect_ordering} = require('./core/effect_ordering.cjs');
-const effect_functions = require('./core/mcfp/mcfp_core_functions.cjs').functions;
+const dices_engine = require('./core/dices_engine.cjs');
 
-const randint = function(min, max) {
-    return min + Math.floor(Math.random() * (max-min+1))
-}
+var dices_object = new dices_engine.DicesObject();
 
 var server = '127.0.0.1:63342';
 var template_list = [];
 
 var attributes = {};
 var effect_execution_order = [];
-var dices_object = {
-    attributes: {},
-    get_iterator: function(attribute_name, effect_index) {
-        if (!dices_object.attributes.hasOwnProperty(attribute_name)) dices_object.attributes[attribute_name] = {};
-        if (!dices_object.attributes[attribute_name].hasOwnProperty(effect_index)) {
-            dices_object.attributes[attribute_name][effect_index] = new dices_iterator();
-        }
-        return dices_object.attributes[attribute_name][effect_index];
-    },
-    reset_pointers: function() {
-        for (let attribute_name in dices_object.attributes) {
-            if (dices_object.attributes.hasOwnProperty(attribute_name)) {
-                for (let effect_index in dices_object.attributes[attribute_name]) {
-                    if (dices_object.attributes[attribute_name].hasOwnProperty(effect_index)) {
-                        dices_object.attributes[attribute_name][effect_index].reset_pointers();
-                    }
-                }
-            }
-        }
-    },
-};
-const dices_iterator = function() {
-    this.pointers = {};
-    this.magnitudes = {};
-    this.reset_pointers = function() {
-        for (let key in this.pointers) {
-            if (this.pointers.hasOwnProperty(key)) this.pointers[key] = 0;
-        }
-    }
-    this.clear = function() {
-        this.pointers = {};
-        this.magnitudes = {};
-    }
-    this.get = function(magnitude) {
-        if (!this.magnitudes.hasOwnProperty(magnitude)) this.magnitudes[magnitude] = [];
-        if (!this.pointers.hasOwnProperty(magnitude)) this.pointers[magnitude] = 0;
-        while (this.magnitudes[magnitude].length <= this.pointers[magnitude]) this.magnitudes[magnitude].push(randint(1, magnitude));
-        return this.magnitudes[magnitude][this.pointers[magnitude]++];
-    }
-    this.reroll = function(magnitude, index) {
-        if (!this.magnitudes.hasOwnProperty(magnitude)) this.magnitudes[magnitude] = [];
-        if (!this.pointers.hasOwnProperty(magnitude)) this.pointers[magnitude] = 0;
-        while (this.magnitudes[magnitude].length <= index) this.magnitudes[magnitude].push(randint(1, magnitude));
-        this.magnitudes[magnitude][index] = randint(1, magnitude);
-    }
-    this.reroll_all = function(magnitude) {
-        for (let index = 0; index < this.magnitudes[magnitude].length; index++) {
-            this.magnitudes[magnitude][index] = randint(1, magnitude);
-        }
-    }
-};
-
-const get_attributes = function(attribute, name='', prefix='') {
-    let data = {};
-    if (attribute.hasOwnProperty('_type')) { // it is an attribute
-        data[prefix+name] = attribute;
-        for (let key in attribute) {
-            if (attribute.hasOwnProperty(key)) {
-                if (attribute[key].constructor === Array) attribute[key + '.default'] = [...attribute[key]];
-                else attribute[key + '.default'] = attribute[key];
-            }
-        }
-        //data[prefix+name]['_default_value'] = attribute.hasOwnProperty('_value') ? attribute._value : null;
-    }
-    else { // must be a recursive attribute tree
-        for (let key in attribute) {
-            if (attribute.hasOwnProperty(key)) {
-                data = {...data, ...get_attributes(attribute[key], key, name === '' ? '' : prefix+name+'.')};
-            }
-        }
-    }
-    return data;
-};
 
 const change_template = function(option_element) {
     let template_index = option_element.value;
-    attributes = get_attributes(template_list[template_index].attributes);
+    attributes = dices_engine.get_attributes(template_list[template_index].attributes);
+
     for (let attribute_name in attributes) {
-        let attribute = attributes[attribute_name];
-        if (attribute.hasOwnProperty('_effects')) {
-            let effect_strings = attribute._effects;
-            attribute._effects = [];
-            for (let i in effect_strings) {
-                if (effect_strings.hasOwnProperty(i)) {
-                    let effect = mcfp.parse_effect(effect_strings[i]);
-                    //console.log(effect);
-                    if (effect.conclusion === 0) {
-                        let converted_effect = mcfp.js_convert(effect.target_attribute, effect.formula_block, effect.effect_type, effect.target_attribute_property);
-                        //console.log(converted_effect.function);
-                        attribute._effects.push(converted_effect);
-                    }
-                }
-            }
-            attribute['_effects.default'] = [...attribute['_effects']];
+        try {
+            attributes[attribute_name] = dices_engine.parse_attribute_effects(attributes[attribute_name]);
+        } catch (error) {
+            alert(attribute_name+': '+error);
         }
-        //console.log([attribute_name, JSON.stringify(attribute)]);
     }
     update_attributes_list();
 };
@@ -163,7 +74,8 @@ const update_templates_list = async function() {
 
 const create_attribute_test_frame = function(attribute_data, attribute_name) {
     let element = document.createElement('div');
-    element.className = 'attribute-test-frame';
+    element.style.display = 'flex';
+    element.style.flexDirection = 'row';
     element.id = 'attribute-test-frame:'+attribute_name;
 
     let elementName = document.createElement('div');
@@ -238,11 +150,11 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
 
 const update_attributes_list = function() {
     // update attributes list after changing template.
-    effect_execution_order = effect_ordering(attributes);
+    effect_execution_order = dices_engine.effect_ordering(attributes);
     attributes_frame.innerHTML = '';
-    for (let attribute_id in attributes) {
-        let attribute = attributes[attribute_id];
-        attributes_frame.appendChild(create_attribute_test_frame(attribute, attribute_id));
+    for (let attribute_name in attributes) {
+        let attribute = attributes[attribute_name];
+        attributes_frame.appendChild(create_attribute_test_frame(attribute, attribute_name));
     }
     update_attribute_values();
 };
@@ -276,72 +188,26 @@ const rerender_array_attribute = function(attribute_name, value_element) {
 
 const reset_attribute_values = function() {
     // resets attribute values.
-    // If set mode is AUTO, sets attribute properties to their default values.
-    // If set mode is MANUAL, sets attribute's value to set value in HTML input element.
-    for (let attribute_name in attributes) {
-        if (attributes.hasOwnProperty(attribute_name))
-        {
-            for (let property in attributes[attribute_name]) {
-                if (attributes[attribute_name].hasOwnProperty(property) && attributes[attribute_name].hasOwnProperty(property+'.default') && (property !== '_value') && (!property.endsWith('.default'))) {
-                    if (attributes[attribute_name][property+'.default'].constructor === Array) {
-                        attributes[attribute_name][property] = [...attributes[attribute_name][property+'.default']];
-                    }
-                    else attributes[attribute_name][property] = attributes[attribute_name][property+'.default'];
-                }
-            }
-            if (attributes[attribute_name]._set.includes('auto'))
-            {
-                attributes[attribute_name]['_value'] = attributes[attribute_name]['_value.default'];
-            }
-            else if (attributes[attribute_name]._set.includes('manual'))
-            {
-                if (attributes[attribute_name]._type === 'array') {
-                    attributes[attribute_name]._value = [];
-                    //attributes[attribute_name]._value = [];
-                    let elementValue = document.getElementById('attribute-test-frame:'+attribute_name+':value');
-                    for (let i = 0; i < elementValue.childElementCount-1; i++) {
-                        let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i);
-                        let elementValueLabel = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i+'label');
-                        if (elementValueInput.checked) attributes[attribute_name]._value.push(elementValueLabel.innerText);
-                    }
-                }
-                else {
-                    attributes[attribute_name]._value = document.getElementById('attribute-test-frame:'+attribute_name+':value').value;
-                    if (attributes[attribute_name]._type === 'boolean') {
-                        attributes[attribute_name]._value = attributes[attribute_name]._value === 'true';
-                    }
-                    else if (attributes[attribute_name]._type === 'integer') {
-                        attributes[attribute_name]._value = Number(attributes[attribute_name]._value);
-                    }
-                }
+    // If set mode is AUTO, sets attribute properties to their default values. (see dices_engine.reset_attributes)
+    // If set mode is MANUAL, sets attribute's value to set value in HTML input element. (see callback lower)
+    dices_engine.reset_attributes(attributes, (attribute_name)=>{
+        let attribute = attributes[attribute_name];
+        if (attribute._type === 'array') {
+            attribute._value = [];
+            let elementValue = document.getElementById('attribute-test-frame:'+attribute_name+':value');
+            for (let i = 0; i < elementValue.childElementCount-1; i++) {
+                let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i);
+                let elementValueLabel = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i+'label');
+                if (elementValueInput.checked) attribute._value.push(elementValueLabel.innerText);
             }
         }
-    }
-};
-
-const execute_effects = function() {
-    dices_object.reset_pointers();
-    for (let effect_path of effect_execution_order) {
-        let [executing_attribute_name, effect_index] = effect_path.split(':');
-        effect_index = Number(effect_index);
-        let executing_attribute = attributes[executing_attribute_name];
-        let effect = executing_attribute._effects[effect_index];
-        let dices_iterator = dices_object.get_iterator(executing_attribute_name, effect_index);
-        effect.function(attributes, effect_functions, executing_attribute_name, dices_iterator);
-    }
-};
-
-const post_effects_cleanup = function() {
-    for (let attribute_name in attributes) {
-        if (attributes.hasOwnProperty(attribute_name)) {
-            if (attributes[attribute_name]._type === 'array') {
-                attributes[attribute_name]._value = attributes[attribute_name]._value.filter(
-                    (value)=>(attributes[attribute_name]._variants.includes(value))
-                );
-            }
+        else {
+            attribute._value = document.getElementById('attribute-test-frame:'+attribute_name+':value').value;
+            if (attribute._type === 'boolean') attribute._value = attribute._value === 'true';
+            else if (attribute._type === 'integer') attribute._value = Number(attribute._value);
         }
-    }
-}
+    });
+};
 
 const render_values = function() {
     for (let attribute_name in attributes) {
@@ -360,8 +226,8 @@ const render_values = function() {
 const update_attribute_values = function() {
     // call when some attribute were changed manually
     reset_attribute_values();
-    execute_effects();
-    post_effects_cleanup();
+    dices_engine.execute_ordered_effects(attributes, effect_execution_order, dices_object);
+    dices_engine.post_effect_attributes_cleanup();
     render_values();
 };
 

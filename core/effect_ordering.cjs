@@ -1,22 +1,3 @@
-const object_length = function(obj) {
-    let property_count = 0;
-    for (var prop in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-            property_count += 1;
-        }
-    }
-    return property_count;
-}
-
-const is_object_empty = function(obj) {
-    for (var prop in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 const get_dependencies = function(attributes) {
     let effect_dependencies = {}; // Object, values are sets
     let attribute_dependencies = {}; // Object, values are sets
@@ -41,8 +22,8 @@ const get_dependencies = function(attributes) {
             //dependencies[attribute_name] = new Set();
         }
     }
-    console.log(effect_dependencies);
-    console.log(attribute_dependencies);
+    //console.log(effect_dependencies);
+    //console.log(attribute_dependencies);
     return [effect_dependencies, attribute_dependencies];
 }
 
