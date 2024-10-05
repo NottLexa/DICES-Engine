@@ -12,64 +12,31 @@ const dices_engine = require('./core/dices_engine.cjs');
 
 var dices_object = new dices_engine.DicesObject();
 
-var server = '127.0.0.1:63342';
+var api_server = 'http://127.0.0.1:8080/api';
 var template_list = [];
 
 var attributes = {};
 var effect_execution_order = [];
 
-const change_template = function(option_element) {
-    let template_index = option_element.value;
-    attributes = dices_engine.get_attributes(template_list[template_index].attributes);
-
-    for (let attribute_name in attributes) {
-        try {
-            attributes[attribute_name] = dices_engine.parse_attribute_effects(attributes[attribute_name]);
-        } catch (error) {
-            alert(attribute_name+': '+error);
+const http_get_async = async function(theUrl)
+{
+    return new Promise(function (resolve, reject) {
+        let xhr = new XMLHttpRequest();
+        xhr.onload = ()=>{
+            if (xhr.readyState === 4 && xhr.status === 200) resolve(xhr.response);
+            else reject({status: xhr.status, statusText: xhr.statusText});
         }
-    }
-    update_attributes_list();
-};
-
-const update_templates_list = async function() {
-    if (platform === 'NODE') {
-        fs = require('fs');
-        path = require('path');
-        try {
-            let templates = fs.readdirSync('data/templates', {encoding: "utf8"});
-            template_list.splice(0, template_list.length);
-            for (let template of templates) {
-                if (path.extname(template) === '.json')
-                {
-                    console.log(template);
-                    let template_path = path.join('data/templates', template);
-                    let template_data = JSON.parse(fs.readFileSync(template_path, {encoding: "utf8"}));
-                    template_list.push(template_data);
-                }
-            }
-        }
-        catch (error) {
-            alert(error);
-        }
-    }
-    else if (platform === 'WEB') {
-        // add later;
-    }
-
-    templates_select_list.innerHTML = '<option disabled selected value> -- Select Template -- </option>';
-    for (let i in template_list)
-    {
-        if (template_list.hasOwnProperty(i))
-        {
-            let template_data = template_list[i];
-            let template_option = document.createElement('option');
-            template_option.value = i;
-            template_option.innerText = template_data.name;
-            templates_select_list.appendChild(template_option);
-        }
-
-    }
+        xhr.onerror = ()=>{reject({status: xhr.status, statusText: xhr.statusText})};
+        xhr.open("GET", theUrl, true); // true for asynchronous
+        xhr.send(null);
+    });
+}
+const getapi = async function(request, options={})
+{
+    options.request = request;
+    let options_array = [];
+    Object.keys(options).forEach((key)=>{options_array.push(key+'='+options[key])})
+    return http_get_async(api_server+'?'+options_array.join('&'));
 };
 
 const create_attribute_test_frame = function(attribute_data, attribute_name) {
@@ -132,7 +99,7 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
         }
     }
     elementValue.disabled = !attribute_data._set.includes('manual');
-    if (!elementValue.disabled) elementValue.onchange = update_attribute_values;
+    if (!elementValue.disabled) elementValue.addEventListener('change', update_attribute_values);
     elementValue.id = 'attribute-test-frame:'+attribute_name+':value';
     element.appendChild(elementValue);
 
@@ -230,6 +197,80 @@ const update_attribute_values = function() {
     dices_engine.post_effect_attributes_cleanup();
     render_values();
 };
+document.getElementById('updateButton').addEventListener('click', update_attribute_values);
+
+const change_template = function(template_name) {
+    try { attributes = dices_engine.template_to_attributes(template_list[template_name]) }
+    catch (error) { alert(error); console.log(error) }
+    update_attributes_list();
+};
+document.getElementById('templates_select_list').addEventListener('change', (event)=>{change_template(event.target.value)});
+
+const update_templates_list = async function() {
+    template_list.splice(0, template_list.length);
+    if (platform === 'NODE') {
+        fs = require('fs');
+        path = require('path');
+        try {
+            let templates = fs.readdirSync('data/templates', {encoding: "utf8"});
+            for (let template of templates) {
+                if (path.extname(template) === '.json')
+                {
+                    console.log(template);
+                    let template_path = path.join('data/templates', template);
+                    let template_data = JSON.parse(fs.readFileSync(template_path, {encoding: "utf8"}));
+                    template_list.push(template_data);
+                }
+            }
+        }
+        catch (error) {
+            alert(error);
+            console.log(error);
+        }
+    }
+    else if (platform === 'WEB') {
+        let updating_status = document.getElementById('templates_update_status');
+        updating_status.innerText = 'Updating templates...';
+        let template_list_on_server;
+        try {
+            template_list_on_server = JSON.parse(await getapi('get_official_template_list'));
+        }
+        catch (error) {
+            alert('Can\'t reach the API server (?request=get_official_template_list).\n\n'+error);
+            console.log(error);
+            updating_status.innerText = 'Updating failed.';
+            template_list_on_server = [];
+        }
+        for (let template_name of template_list_on_server) {
+            try {
+                let template_data = JSON.parse(await getapi('get_template_data', {template: template_name}));
+                template_list.push(template_data);
+                updating_status.innerText = 'Fetched template <'+template_name+'>...';
+            }
+            catch (error) {
+                alert('Can\'t reach the API server (?request=get_template_data&template='+template_name+').\n\n'+error);
+                console.log(error);
+                updating_status.innerText = 'Failed fetching template <'+template_name+'>';
+            }
+        }
+        updating_status.innerText = 'Updating completed!';
+    }
+
+    templates_select_list.innerHTML = '<option disabled selected value> -- Select Template -- </option>';
+    for (let i in template_list)
+    {
+        if (template_list.hasOwnProperty(i))
+        {
+            let template_data = template_list[i];
+            let template_option = document.createElement('option');
+            template_option.value = i;
+            template_option.innerText = template_data.name;
+            templates_select_list.appendChild(template_option);
+        }
+
+    }
+};
+document.getElementById('templates_select_list_update').addEventListener('click', update_templates_list);
 
 const init = async function() {
     await update_templates_list();
@@ -242,6 +283,9 @@ const run = async function() {
     {
         await init();
         nw.Window.get().show();
+    }
+    else {
+        await init();
     }
 };
 

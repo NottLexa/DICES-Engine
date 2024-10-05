@@ -8,10 +8,11 @@
         <div style="padding: 32px; background: darkgrey">
             <div style="margin: 16px; display: flex; flex-direction: row">
                 <label for="templates_select_list">Templates:</label>
-                <select id="templates_select_list" onchange="change_template(this)" style="min-width: 64px"></select>
-                <button id="templates_select_list_update" onclick="update_templates_list()">UPDATE TEMPLATES</button>
+                <select id="templates_select_list" style="min-width: 64px"></select>
+                <button id="templates_select_list_update">UPDATE TEMPLATES</button>
+                <div id="templates_update_status"></div>
             </div>
-            <button id="updateButton" onclick="update_attribute_values()">UPDATE ATTRIBUTE VALUES</button>
+            <button id="updateButton">UPDATE ATTRIBUTE VALUES</button>
             <div style="padding: 16px" id="attributes_frame">
 
             </div>

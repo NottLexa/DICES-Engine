@@ -20,7 +20,8 @@ Made for [@arkain123](https://github.com/arkain123) ≽^•⩊•^≼
 ## How to install
 
 1) Install [NodeJS](https://nodejs.org).
-2) Run shell command `npm install` in repository's directory.
+2) Clone the repository.
+3) Run shell command `npm install` in repository's directory.
 
 ## How to run
 

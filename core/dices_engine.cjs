@@ -56,6 +56,19 @@ const DicesIterator = function() {
     }
 };
 
+const template_to_attributes = function(template_object) {
+    let attributes_object = get_attributes(template_object.attributes);
+
+    for (let attribute_name in attributes_object) {
+        try {
+            attributes_object[attribute_name] = parse_attribute_effects(attributes_object[attribute_name]);
+        } catch (error) {
+            throw new Error(attribute_name+': '+error);
+        }
+    }
+    return attributes_object;
+}
+
 const get_attributes = function(json_object, name='', prefix='') {
     let attribute_data = {};
     if (json_object.hasOwnProperty('_type')) { // it is an attribute
@@ -155,6 +168,6 @@ const post_effect_attributes_cleanup = function(attributes_object) {
     }
 };
 
-module.exports = {randint, DicesObject, DicesIterator, get_attributes, parse_attribute_effect,
+module.exports = {randint, DicesObject, DicesIterator, template_to_attributes, get_attributes, parse_attribute_effect,
     convert_attribute_effect, parse_attribute_effects, effect_ordering, effect_functions, execute_ordered_effects,
     reset_attributes, post_effect_attributes_cleanup};
