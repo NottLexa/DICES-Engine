@@ -98,6 +98,8 @@ const create_attribute_test_frame = function(attribute_data, attribute_name) {
             elementValue.value = attribute_data._value;
         }
     }
+    elementValue.classList.add('attribute');
+    elementValue.name = attribute_name;
     elementValue.disabled = !attribute_data._set.includes('manual');
     if (!elementValue.disabled) elementValue.addEventListener('change', update_attribute_values);
     elementValue.id = 'attribute-test-frame:'+attribute_name+':value';
@@ -137,7 +139,8 @@ const rerender_array_attribute = function(attribute_name, value_element) {
             let elementValueInput = document.createElement('input');
             elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
             elementValueInput.type = 'checkbox';
-            elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
+            elementValueInput.checked = (Array.isArray(attribute_data._value) ? attribute_data._value.includes(variant) : false);
+            console.log(elementValueInput.checked);
             elementValueInput.disabled = (!attribute_data._set.includes('manual'));
             elementValueInput.name = variant;
             if (attribute_data.hasOwnProperty('_choice_amount')) {
@@ -160,20 +163,8 @@ const reset_attribute_values = function() {
     // If set mode is MANUAL, sets attribute's value to set value in HTML input element. (see callback lower)
     dices_engine.reset_attributes(attributes, (attribute_name)=>{
         let attribute = attributes[attribute_name];
-        if (attribute._type === 'array') {
-            attribute._value = [];
-            let elementValue = document.getElementById('attribute-test-frame:'+attribute_name+':value');
-            for (let i = 0; i < elementValue.childElementCount-1; i++) {
-                let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i);
-                let elementValueLabel = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i+'label');
-                if (elementValueInput.checked) attribute._value.push(elementValueInput.name);
-            }
-        }
-        else {
-            attribute._value = document.getElementById('attribute-test-frame:'+attribute_name+':value').value;
-            if (attribute._type === 'boolean') attribute._value = attribute._value === 'true';
-            else if (attribute._type === 'integer') attribute._value = Number(attribute._value);
-        }
+        attribute._value = dices_engine.get_value_from_element(
+            document.getElementById('attribute-test-frame:'+attribute_name+':value'), attribute)[attribute_name];
     });
 };
 

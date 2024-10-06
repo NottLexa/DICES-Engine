@@ -168,6 +168,86 @@ const post_effect_attributes_cleanup = function(attributes_object) {
     }
 };
 
+const find_checked_checkboxes = function(html_element, recursion) {
+    let return_data = [];
+    for (let child_index = 0; child_index < html_element.childElementCount; child_index++) {
+        let child = html_element.children[child_index];
+        if (child.tagName.toLowerCase() === 'input' && child.type === 'checkbox') {
+            if (child.checked) return_data.push(child.name);
+        }
+        if (recursion) {
+            return_data = return_data.concat(find_checked_checkboxes(child, recursion));
+        }
+    }
+    return return_data;
+}
+
+
+const get_value_from_element = function(html_element, attributes_object_for_type_checking = undefined) {
+    if (html_element.hasAttribute('name')) {
+        let attribute_name = html_element.name;
+        let attribute_type = 'undefined';
+        if (attributes_object_for_type_checking !== undefined) {
+            if (attributes_object_for_type_checking.hasOwnProperty(attribute_name) && attributes_object_for_type_checking[attribute_name].hasOwnProperty('_type')) {
+                attribute_type = attributes_object_for_type_checking[attribute_name]._type;
+            }
+        }
+        switch (html_element.tagName.toLowerCase()) {
+            case 'input':
+                switch (html_element.type + '|' + attribute_type) {
+                    case 'text|string':
+                    case 'text|undefined':
+                        return {[attribute_name]: html_element.value};
+                    case 'number|integer':
+                    case 'number|undefined':
+                        return {[attribute_name]: Number(html_element.value)};
+                }
+                break;
+            case 'select':
+                switch (attribute_type) {
+                    case 'boolean':
+                        return {[attribute_name]: html_element.value.toString() === 'true'};
+                    case 'undefined':
+                    case 'string':
+                        return {[attribute_name]: html_element.value};
+                }
+                break;
+            case 'fieldset':
+                switch (attribute_type) {
+                    case 'array':
+                    case 'undefined':
+                        return {[attribute_name]: find_checked_checkboxes(html_element, true)};
+                }
+                break;
+        }
+        return {[attribute_name]:'INCORRECT'};
+    }
+    return {a:1};
+}
+
+const get_value_from_elements = function(html_elements, attributes_object_for_type_checking = undefined, manual_only = true) {
+    let return_data = {};
+    for (html_element of html_elements) {
+        let element_value = get_value_from_element(html_element, attributes_object_for_type_checking);
+        if (attributes_object_for_type_checking !== undefined && manual_only) {
+            for (let attribute_name in element_value) {
+                if (element_value.hasOwnProperty(attribute_name)) {
+                    if (attributes_object_for_type_checking.hasOwnProperty(attribute_name)) {
+                        if (attributes_object_for_type_checking[attribute_name].hasOwnProperty('_set')) {
+                            if (attributes_object_for_type_checking[attribute_name]['_set'].includes('manual')) {
+                                return_data = {...return_data, ...element_value};
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else return_data = {...return_data, ...element_value};
+    }
+    return return_data;
+}
+
 module.exports = {randint, DicesObject, DicesIterator, template_to_attributes, get_attributes, parse_attribute_effect,
     convert_attribute_effect, parse_attribute_effects, effect_ordering, effect_functions, execute_ordered_effects,
-    reset_attributes, post_effect_attributes_cleanup};
+    reset_attributes, post_effect_attributes_cleanup, find_checked_checkboxes, get_value_from_element,
+    get_value_from_elements};
