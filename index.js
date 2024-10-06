@@ -139,6 +139,7 @@ const rerender_array_attribute = function(attribute_name, value_element) {
             elementValueInput.type = 'checkbox';
             elementValueInput.checked = (attribute_data._value.constructor === Array ? attribute_data._value.includes(variant) : false);
             elementValueInput.disabled = (!attribute_data._set.includes('manual'));
+            elementValueInput.name = variant;
             if (attribute_data.hasOwnProperty('_choice_amount')) {
                 if (!elementValueInput.checked && attribute_data._value.length >= attribute_data._choice_amount) elementValueInput.disabled = true;
             }
@@ -165,7 +166,7 @@ const reset_attribute_values = function() {
             for (let i = 0; i < elementValue.childElementCount-1; i++) {
                 let elementValueInput = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i);
                 let elementValueLabel = document.getElementById('attribute-test-frame:'+attribute_name+':value:checkbox'+i+'label');
-                if (elementValueInput.checked) attribute._value.push(elementValueLabel.innerText);
+                if (elementValueInput.checked) attribute._value.push(elementValueInput.name);
             }
         }
         else {

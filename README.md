@@ -58,4 +58,23 @@ Made for [@arkain123](https://github.com/arkain123) ≽^•⩊•^≼
     ```
 
 2) Run it (should be working with running from anywhere)
-3) _(Optional)_ If your template data is too big and template JSON-file becomes too heavy, you can run this script with `-compact` flag. In this way, template JSON-file will be written in one line.
+3) _(Optional)_ If your template data is too big and template JSON-file becomes too heavy, you can run this script with
+   `-compact` flag. In this way, template JSON-file will be written in one line.
+
+## How to deploy DICES Engine on web client
+
+### Native DICES Engine render engine
+
+1) Run shell command `npm run browserify` in repository's directory. It will create a new file in repo's directory:
+   `index_bundle.js`, a bundled version of all core scripts and `index.js` in one script, compatible with deploying in
+   regular HTML document.
+2) In `index.html`, change `<script src="index.js" id="script" platform="NODE"></script>` to
+   `<script src="index_bundle.js" id="script"></script>` it is essential that `platoform` attribute is removed when
+   deploying for web.
+   
+### Custom render engine
+
+Whenever you want to use your custom render engine for DICES engine, you must create your own HTML document and JS
+script connected to it. However, to use DICES Engine functionality, your own JS script must be compatible with CommonJS,
+as you need to `require("./core/dices_engine.cjs")` to make it work. In that case, you can create a NodeJS script and
+make it browserified with `npm run browserify`.
