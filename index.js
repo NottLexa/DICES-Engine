@@ -162,9 +162,8 @@ const reset_attribute_values = function() {
     // If set mode is AUTO, sets attribute properties to their default values. (see dices_engine.reset_attributes)
     // If set mode is MANUAL, sets attribute's value to set value in HTML input element. (see callback lower)
     dices_engine.reset_attributes(attributes, (attribute_name)=>{
-        let attribute = attributes[attribute_name];
-        attribute._value = dices_engine.get_value_from_element(
-            document.getElementById('attribute-test-frame:'+attribute_name+':value'), attribute)[attribute_name];
+        dices_engine.set_attribute(attributes, attribute_name, dices_engine.get_value_from_element(
+            document.getElementById('attribute-test-frame:'+attribute_name+':value'), attributes[attribute_name])[attribute_name])
     });
 };
 

@@ -198,6 +198,7 @@ const get_value_from_element = function(html_element, attributes_object_for_type
                     case 'text|string':
                     case 'text|undefined':
                         return {[attribute_name]: html_element.value};
+                    case 'text|integer':
                     case 'number|integer':
                     case 'number|undefined':
                         return {[attribute_name]: Number(html_element.value)};
@@ -247,7 +248,26 @@ const get_value_from_elements = function(html_elements, attributes_object_for_ty
     return return_data;
 }
 
+const set_attribute = function(attributes_object, attribute_reference, new_value) {
+    let [attribute_name, property] = attribute_reference.split(':');
+    if (property === undefined) property = 'value';
+    property = '_'+property;
+    if (attributes_object.hasOwnProperty(attribute_name)) {
+        if (attributes_object[attribute_name].hasOwnProperty(property)) {
+            attributes_object[attribute_name][property] = new_value;
+        }
+    }
+}
+
+const set_attributes = function(attributes_object, changes_object) {
+    for (let attribute_reference in changes_object) {
+        if (changes_object.hasOwnProperty(attribute_reference)) {
+            set_attribute(attributes_object, attribute_reference, changes_object[attribute_reference])
+        }
+    }
+}
+
 module.exports = {randint, DicesObject, DicesIterator, template_to_attributes, get_attributes, parse_attribute_effect,
     convert_attribute_effect, parse_attribute_effects, effect_ordering, effect_functions, execute_ordered_effects,
     reset_attributes, post_effect_attributes_cleanup, find_checked_checkboxes, get_value_from_element,
-    get_value_from_elements};
+    get_value_from_elements, set_attribute, set_attributes};
