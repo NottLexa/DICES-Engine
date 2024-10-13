@@ -20,17 +20,17 @@ const mjc = function(mfb) {
 
     this.convert_effect = function(target_attribute, formula_block, effect_type, target_attribute_property = 'value') {
         let [converted_formula, attribute_dependencies] = mjc_this.convert_formula(formula_block);
-        if (converted_formula === null) return {function: null, dependecies: [], target_attribute: target_attribute};
+        if (converted_formula === null) return {function: null, dependencies: [], target_attribute: target_attribute};
         //console.log(converted_formula);
         if (effect_type === '.=') {
             return {function: new Function('attributes', 'functions', 'self_attribute', 'dices_iterator',
                     `attributes["${target_attribute}"]._${target_attribute_property}.push(...${converted_formula})`),
-                dependecies: attribute_dependencies, target_attribute: target_attribute};
+                dependencies: attribute_dependencies, target_attribute: target_attribute};
         }
         else {
             return {function: new Function('attributes', 'functions', 'self_attribute', 'dices_iterator',
                 `attributes["${target_attribute}"]._${target_attribute_property} ${effect_type} `+converted_formula),
-                dependecies: attribute_dependencies, target_attribute: target_attribute};
+                dependencies: attribute_dependencies, target_attribute: target_attribute};
         }
     }
 

@@ -12,7 +12,7 @@ const get_dependencies = function(attributes) {
                     let effect = attribute._effects[effect_id];
                     let effect_path = attribute_name+':'+effect_id;
                     effect_dependencies[effect_path] = new Set();
-                    effect.dependecies.forEach((effect_dependency) => {
+                    effect.dependencies.forEach((effect_dependency) => {
                         effect_dependencies[effect_path].add(effect_dependency === '@self' ? attribute_name : effect_dependency);
                     });
                     attribute_dependencies[effect.target_attribute].add(effect_path);
