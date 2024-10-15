@@ -91,7 +91,7 @@ const mfp = function(mfb, mss, mvc, mse) {
                 }
                 else if (mvc.check_dice(string)) { // simple dice
                     let [dice_amount, dice_magnitude] = string.split('d');
-                    return new mfb.SimpleDice(this.parse_value(dice_amount), this.parse_value(dice_magnitude));
+                    return new mfb.Dice(this.parse_value(dice_amount), this.parse_value(dice_magnitude));
                 }
                 return null;
         }

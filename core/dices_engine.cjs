@@ -49,9 +49,21 @@ const DicesIterator = function() {
         while (this.magnitudes[magnitude].length <= index) this.magnitudes[magnitude].push(randint(1, magnitude));
         this.magnitudes[magnitude][index] = randint(1, magnitude);
     }
-    this.reroll_all = function(magnitude) {
-        for (let index = 0; index < this.magnitudes[magnitude].length; index++) {
-            this.magnitudes[magnitude][index] = randint(1, magnitude);
+    this.reroll_all = function(...magnitudes) {
+        if (magnitudes.length === 0) {
+            for (let magnitude in this.magnitudes) {
+                if (!this.magnitudes.hasOwnProperty(magnitude)) continue;
+                for (let index = 0; index < this.magnitudes[magnitude].length; index++) {
+                    this.magnitudes[magnitude][index] = randint(1, magnitude);
+                }
+            }
+        }
+        else {
+            for (let magnitude of magnitudes) {
+                for (let index = 0; index < this.magnitudes[magnitude].length; index++) {
+                    this.magnitudes[magnitude][index] = randint(1, magnitude);
+                }
+            }
         }
     }
 };
