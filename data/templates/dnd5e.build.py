@@ -109,29 +109,34 @@ level_attribute: tb.Attribute = character_base_attributes.attributes['level']
 #region [Abilities]
 
 character_abilities_attributes = tb.AttributeTree(
+    starting_score = tb.AttributeTree(),
     score = tb.AttributeTree(),
     modifiers = tb.AttributeTree(),
     saving_throws = tb.AttributeTree(),
+    saving_throw_proficiency = tb.AttributeTree(),
     skills = tb.AttributeTree(),
     skill_proficiency = tb.AttributeTree(),
     class_skills = tb.Attribute(type = tb.TYPE_ARRAY, name = 'Skills to choose', set = [tb.SET_MANUAL], value = [], variants = []),
-    bonuses = tb.AttributeTree(),
     proficiency_bonus = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Proficiency Bonus', set = [tb.SET_AUTO], value = 0),
     inspiration = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Inspiration', set = [tb.SET_MANUAL], value = 0),
-    initiative = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Initiative', set = [tb.SET_AUTO], value = 0)
+    initiative = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Initiative', set = [tb.SET_AUTO], value = 0),
+    passive_perception = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Passive Perception', set = [tb.SET_AUTO], value = 0)
 )
 
 for ability in abilities:
+    character_abilities_attributes.attributes['starting_score'].add(**{ability.lower(): tb.Attribute(
+        type = tb.TYPE_INTEGER, name = ability+' (Starting score)', set = tb.SET_MANUAL, value = 0,
+        effects = ['character.abilities.score.'+ability.lower()+' += @self'], value_min = 0, value_max = 20)})
     character_abilities_attributes.attributes['score'].add(**{ability.lower(): tb.Attribute(
-        type = tb.TYPE_INTEGER, name = ability+' (Score)', set = tb.SET_MANUAL, value = 0,
+        type = tb.TYPE_INTEGER, name = ability+' (Score)', set = tb.SET_AUTO, value = 0,
         effects = ['character.abilities.modifiers.'+ability.lower()+' += :floor((@self - 10) / 2)'])})
     character_abilities_attributes.attributes['modifiers'].add(**{ability.lower(): tb.Attribute(
         type = tb.TYPE_INTEGER, name = ability+' (Modifier)', set = [tb.SET_AUTO], value = 0,
         effects = ['character.abilities.saving_throws.'+ability.lower()+' += @self'])})
     character_abilities_attributes.attributes['saving_throws'].add(**{ability.lower(): tb.Attribute(
         type = tb.TYPE_INTEGER, name = ability+' (ST)', set = [tb.SET_AUTO], value = 0)})
-    character_abilities_attributes.attributes['bonuses'].add(**{ability.lower(): tb.Attribute(
-        type = tb.TYPE_BOOLEAN, name = ability+' (Bonus)', set = [tb.SET_AUTO], value = False,
+    character_abilities_attributes.attributes['saving_throw_proficiency'].add(**{ability.lower(): tb.Attribute(
+        type = tb.TYPE_BOOLEAN, name = ability+' (ST Proficiency)', set = [tb.SET_AUTO], value = False,
         effects = ['character.abilities.saving_throws.'+ability.lower()+' += :if(@self, character.abilities.proficiency_bonus, 0)'])})
 
 for ability in skills_by_abilities:
@@ -148,7 +153,7 @@ for ability in skills_by_abilities:
 
 for character_class in saving_throws_by_classes:
     for saving_throw in saving_throws_by_classes[character_class]:
-        class_attribute.add_effect('character.abilities.bonuses.'+saving_throw.lower()+' ||= (:lower(@self) == :lower(\''+str(character_class.lower())+'\'))')
+        class_attribute.add_effect('character.abilities.saving_throw_proficiency.'+saving_throw.lower()+' ||= (:lower(@self) == :lower(\''+str(character_class.lower())+'\'))')
 
 for character_class in skills_by_classes:
     for skill in skills_by_classes[character_class]:
@@ -168,21 +173,65 @@ for character_class in skill_amount_by_classes:
 class_skill_amount_formula = class_skill_amount_formula.replace('Z', '0')
 class_attribute.add_effect('character.abilities.class_skills:choice_amount = '+class_skill_amount_formula)
 
+character_abilities_attributes.attributes['modifiers'].attributes['wisdom'].add_effect('character.abilities.passive_perception += 10 + @self')
+
 #endregion
 
 #region [Physical]
 
 character_physical_attributes = tb.AttributeTree(
     armor_class = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Armor Class', set = [tb.SET_AUTO], value = 0),
-    speed = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Speed', set = [tb.SET_MANUAL], value = 0),
-    max_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Max HP', set = [tb.SET_AUTO], value = 0)
+    speed = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Speed', set = [tb.SET_MANUAL], value_min = 0, value = 0),
+    max_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Max HP', set = [tb.SET_AUTO], value = 0),
+    hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Current HP', set = [tb.SET_MANUAL], value_min = 0, value = 0),
+    temp_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Temporary HP', set = [tb.SET_MANUAL], value = 0),
+    hit_dice = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Hit Dice (magnitude)', set = [tb.SET_AUTO], value = 0),
+    death_saves = tb.AttributeTree(
+        successes = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Death saves: Successes', set = [tb.SET_MANUAL],
+            value_min = 0, value_max = 3, value = 0),
+        failures = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Death saves: Failures', set = [tb.SET_MANUAL],
+            value_min = 0, value_max = 3, value = 0),
+    ),
+    carrying_capacity = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Carrying capacity', set = [tb.SET_AUTO], value = 0)
 )
 
 for character_class in hit_dices_by_classes:
-    hit_dice = hit_dices_by_classes[character_class]
-    max_hp_by_level_formula = f':if(:lower(character.base.class) == :lower(\'{character_class}\'), :max(1, X+character.abilities.modifiers.constitution), 0)'
-    max_hp_by_level_formula = max_hp_by_level_formula.replace('X', str(hit_dice)+f'+@dice(@self-1, {hit_dice})')
-    level_attribute.add_effect('character.physical.max_hp += '+max_hp_by_level_formula)
+    hit_dice_magnitude = hit_dices_by_classes[character_class]
+    character_physical_attributes.attributes['hit_dice'].add_effect(f'character.physical.hit_dice += :if(:lower(character.base.class) == :lower(\'{character_class}\'), {hit_dice_magnitude}, 0)')
+
+character_physical_attributes.attributes['max_hp'].add_effect('character.physical.hp:value_max = @self')
+level_attribute.add_effect('character.physical.max_hp += :max(0, character.physical.hit_dice + @dice(:max(@self-1, 0), character.physical.hit_dice) + character.abilities.modifiers.constitution*@self)')
+
+character_abilities_attributes.attributes['modifiers'].attributes['dexterity'].add_effect('character.physical.armor_class += :if(character.equipment.armor_on, 0, 10+@self)')
+character_abilities_attributes.attributes['score'].attributes['strength'].add_effect('character.physical.carrying_capacity += @self * 15')
+
+#endregion
+
+#region [Equipment]
+
+character_equipment_attributes = tb.AttributeTree(
+    armor_on = tb.Attribute(type = tb.TYPE_BOOLEAN, name = 'Armor on', set = [tb.SET_AUTO], value = False),
+    armor = tb.AttributeTree(
+        name = tb.Attribute(type = tb.TYPE_STRING, name = 'Armor name', set = [tb.SET_AUTO], value = ''),
+        type = tb.Attribute(type = tb.TYPE_STRING, name = 'Armor type', set = [tb.SET_AUTO], value = ''),
+        _class = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Armor\'s class', set = [tb.SET_AUTO], value = 0),
+        strength_limit = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Armor type', set = [tb.SET_AUTO], value = 0),
+        stealth_disadvantage = tb.Attribute(type = tb.TYPE_BOOLEAN, name = 'Stealth Disadvantage', set = [tb.SET_AUTO], value = False),
+    ),
+    spells = tb.AttributeTree(),
+    items = tb.AttributeTree()
+)
+
+spell_slots = {}
+for level in range(1, 9+1):
+    spell_slots[f'level{level}'] = tb.Attribute(type = tb.TYPE_INTEGER, name = f'Spell slots (level {level})',
+        set = [tb.SET_AUTO], value = 0)
+
+character_spells_attributes = tb.AttributeTree(
+    spell_amount = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Spell amount', set = [tb.SET_AUTO], value = 0),
+    catnip_amount = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Catnip amount', set = [tb.SET_AUTO], value = 0),
+    spell_slots = tb.AttributeTree(**spell_slots)
+)
 
 #endregion
 
@@ -198,7 +247,9 @@ attributes = tb.AttributeTree(
     character = tb.AttributeTree(
         base = character_base_attributes,
         abilities = character_abilities_attributes,
-        physical = character_physical_attributes
+        physical = character_physical_attributes,
+        equipment = character_equipment_attributes,
+        spells = character_spells_attributes,
     ),
     classes = tb.AttributeTree(
         warrior = tb.AttributeTree(
