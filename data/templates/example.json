@@ -1,0 +1,82 @@
+{
+  "name": "DICES Engine example template",
+  "version": 1,
+  "attributes": {
+    "input_tree": {
+      "x": {
+        "_type": "integer",
+        "_name": "X",
+        "_set": ["manual"],
+        "_value": 1,
+        "_effects": [
+          "output_tree.x_plus_y += @self",
+          "output_tree.x_plus_z += @self",
+          "output_tree.x_plus_10y_plus_100z += 1*@self",
+          "output_tree.the_largest_of_x_and_y += :max(@self, input_tree.y)"
+        ],
+        "_hidden": false
+      },
+      "y": {
+        "_type": "integer",
+        "_name": "Y",
+        "_set": ["manual"],
+        "_value": 2,
+        "_effects": [
+          "output_tree.x_plus_y += @self",
+          "output_tree.y_plus_z += @self",
+          "output_tree.x_plus_10y_plus_100z += 10*@self"
+        ],
+        "_hidden": false
+      },
+      "z": {
+        "_type": "integer",
+        "_name": "Z",
+        "_set": ["manual"],
+        "_value": 4,
+        "_effects": [
+          "output_tree.x_plus_z += @self",
+          "output_tree.y_plus_z += @self",
+          "output_tree.x_plus_10y_plus_100z += 100*@self"
+        ],
+        "_hidden": false
+      }
+    },
+    "output_tree": {
+      "x_plus_y": {
+        "_type": "integer",
+        "_name": "X + Y",
+        "_set": ["auto"],
+        "_value": 0,
+        "_hidden": false
+      },
+      "x_plus_z": {
+        "_type": "integer",
+        "_name": "X + Z",
+        "_set": ["auto"],
+        "_value": 0,
+        "_hidden": false
+      },
+      "y_plus_z": {
+        "_type": "integer",
+        "_name": "Y + Z",
+        "_set": ["auto"],
+        "_value": 0,
+        "_hidden": false
+      },
+      "x_plus_10y_plus_100z": {
+        "_type": "integer",
+        "_name": "X + 10Y + 100Z",
+        "_set": ["auto"],
+        "_value": 0,
+        "_hidden": false
+      },
+      "the_largest_of_x_and_y": {
+        "_type": "integer",
+        "_name": "The largest number of X and Y",
+        "_set": ["auto"],
+        "_value": 0,
+        "_hidden": false
+      }
+    }
+  }
+}

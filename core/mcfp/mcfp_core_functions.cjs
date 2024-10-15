@@ -3,6 +3,7 @@ var functions = {
     sub: (a, b) => (a - b),
     mul: (a, b) => (a * b),
     div: (a, b) => (a / b),
+    abs: (a) => (Math.abs(a)),
     floor: (a) => (Math.floor(a)),
     ceil: (a) => (Math.ceil(a)),
     round: (a) => (Math.round(a)),
