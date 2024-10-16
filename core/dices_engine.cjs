@@ -79,7 +79,7 @@ const template_to_attributes = function(template_object) {
         }
     }
     return attributes_object;
-}
+};
 
 const get_attributes = function(json_object, name='', prefix='') {
     let attribute_data = {};
@@ -105,12 +105,12 @@ const get_attributes = function(json_object, name='', prefix='') {
 
 const parse_attribute_effect = function (effect_string) {
     return mcfp.parse_effect(effect_string);
-}
+};
 
 const convert_attribute_effect = function (effect_object) {
     return mcfp.js_convert(effect_object.target_attribute, effect_object.formula_block, effect_object.effect_type,
         effect_object.target_attribute_property);
-}
+};
 
 const parse_attribute_effects = function(attribute_object) {
     let returned_object = {...attribute_object};
@@ -130,7 +130,7 @@ const parse_attribute_effects = function(attribute_object) {
         returned_object['_effects.default'] = [...returned_object['_effects']];
     }
     return returned_object;
-}
+};
 
 const execute_ordered_effects = function(attributes_object, execution_order, dices_object) {
     dices_object.reset_pointers();
@@ -142,7 +142,7 @@ const execute_ordered_effects = function(attributes_object, execution_order, dic
         let dices_iterator = dices_object.get_iterator(executing_attribute_name, effect_index);
         effect.function(attributes_object, effect_functions, executing_attribute_name, dices_iterator);
     }
-}
+};
 
 const reset_attributes = function(attributes_object, manual_set_attribute_callback) {
     for (let attribute_name in attributes_object) {
@@ -167,7 +167,7 @@ const reset_attributes = function(attributes_object, manual_set_attribute_callba
             }
         }
     }
-}
+};
 
 const post_effect_attributes_cleanup = function(attributes_object) {
     for (let attribute_name in attributes_object) {
@@ -192,7 +192,7 @@ const find_checked_checkboxes = function(html_element, recursion) {
         }
     }
     return return_data;
-}
+};
 
 
 const get_value_from_element = function(html_element, attributes_object_for_type_checking = undefined) {
@@ -236,7 +236,7 @@ const get_value_from_element = function(html_element, attributes_object_for_type
         return {[attribute_name]:'INCORRECT'};
     }
     return {a:1};
-}
+};
 
 const get_value_from_elements = function(html_elements, attributes_object_for_type_checking = undefined, manual_only = true) {
     let return_data = {};
@@ -258,7 +258,28 @@ const get_value_from_elements = function(html_elements, attributes_object_for_ty
         else return_data = {...return_data, ...element_value};
     }
     return return_data;
-}
+};
+
+const get_effects_by_targets = function(attributes_object, return_with_effect_index = true, only_effects_that_use_dices = false) {
+    let effects_by_targets = {};
+    for (let attribute_name in attributes_object) {
+        if (attributes_object.hasOwnProperty(attribute_name)) effects_by_targets[attribute_name] = new Set();
+    }
+    for (let attribute_name in attributes_object) {
+        if (!attributes_object.hasOwnProperty(attribute_name)) continue;
+        let attribute = attributes_object[attribute_name];
+        if (attribute.hasOwnProperty('_effects')) {
+            for (let effect_index = 0; effect_index < attribute._effects.length; effect_index++) {
+                let effect = attribute._effects[effect_index];
+                if (!only_effects_that_use_dices || (effect.hasOwnProperty('use_dices') && effect.use_dices))
+                effects_by_targets[effect.target_attribute].add(return_with_effect_index
+                    ? attribute_name+':'+effect_index
+                    : attribute_name);
+            }
+        }
+    }
+    return effects_by_targets
+};
 
 const set_attribute = function(attributes_object, attribute_reference, new_value) {
     let [attribute_name, property] = attribute_reference.split(':');
@@ -269,7 +290,7 @@ const set_attribute = function(attributes_object, attribute_reference, new_value
             attributes_object[attribute_name][property] = new_value;
         }
     }
-}
+};
 
 const set_attributes = function(attributes_object, changes_object) {
     for (let attribute_reference in changes_object) {
@@ -277,9 +298,9 @@ const set_attributes = function(attributes_object, changes_object) {
             set_attribute(attributes_object, attribute_reference, changes_object[attribute_reference])
         }
     }
-}
+};
 
 module.exports = {randint, DicesObject, DicesIterator, template_to_attributes, get_attributes, parse_attribute_effect,
     convert_attribute_effect, parse_attribute_effects, effect_ordering, effect_functions, execute_ordered_effects,
     reset_attributes, post_effect_attributes_cleanup, find_checked_checkboxes, get_value_from_element,
-    get_value_from_elements, set_attribute, set_attributes};
+    get_value_from_elements, set_attribute, set_attributes, get_effects_by_targets};

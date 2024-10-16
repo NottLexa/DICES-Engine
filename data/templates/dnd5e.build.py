@@ -198,7 +198,7 @@ character_physical_attributes = tb.AttributeTree(
 
 for character_class in hit_dices_by_classes:
     hit_dice_magnitude = hit_dices_by_classes[character_class]
-    character_physical_attributes.attributes['hit_dice'].add_effect(f'character.physical.hit_dice += :if(:lower(character.base.class) == :lower(\'{character_class}\'), {hit_dice_magnitude}, 0)')
+    class_attribute.add_effect(f'character.physical.hit_dice += :if(:lower(@self) == :lower(\'{character_class}\'), {hit_dice_magnitude}, 0)')
 
 character_physical_attributes.attributes['max_hp'].add_effect('character.physical.hp:value_max = @self')
 level_attribute.add_effect('character.physical.max_hp += :max(0, character.physical.hit_dice + @dice(:max(@self-1, 0), character.physical.hit_dice) + character.abilities.modifiers.constitution*@self)')

@@ -11,7 +11,7 @@ by Alexey ["NotLexa"]((https://github.com/NottLexa)) Kozhanov (Алексей К
 DICES Engine consists of three parts:
 * Render engine (for now it's only a plain HTML dynamic page for NW.JS)
 * MareCreator Formula Parser (MCFP) - JavaScript's module for parsing attribute effects' or formulas' code, turning them
-into JS objects that abstractly represent formula's code parts, and (optionally) converting these objects into JS function.
+into JS objects that abstractly represent a formula's code parts, and (optionally) converting these objects into JS function.
 * Template Builder - Python module for building (compiling) DICES Engine templates in format of JSON, using DICES Engine
 attributes written in Python (Python 3.x, preferably >=3.10).
 
@@ -65,12 +65,12 @@ Made for [@arkain123](https://github.com/arkain123) ≽^•⩊•^≼
 
 ### Native DICES Engine render engine
 
-1) Run shell command `npm run browserify` in repository's directory. It will create a new file in repo's directory:
+1) Run shell command `npm run browserify` in repository's directory. It will create a new file in the repo's directory:
    `index_bundle.js`, a bundled version of all core scripts and `index.js` in one script, compatible with deploying in
    regular HTML document.
 2) In `index.html`, change `<script src="index.js" id="script" platform="NODE"></script>` to
    `<script src="index_bundle.js" id="script"></script>` it is essential that `platoform` attribute is removed when
-   deploying for web.
+   deploying for the web.
    
 ### Custom render engine
 
