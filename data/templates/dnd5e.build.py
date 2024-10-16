@@ -174,7 +174,7 @@ class_skill_amount_formula = class_skill_amount_formula.replace('Z', '0')
 class_attribute.add_effect('character.abilities.class_skills:choice_amount = '+class_skill_amount_formula)
 
 character_abilities_attributes.attributes['modifiers'].attributes['dexterity'].add_effect('character.abilities.initiative += 1d20 + @self')
-character_abilities_attributes.attributes['modifiers'].attributes['wisdom'].add_effect('character.abilities.passive_perception += 10 + @self')
+character_abilities_attributes.attributes['skills'].attributes['perception'].add_effect('character.abilities.passive_perception += 10 + @self')
 
 #endregion
 

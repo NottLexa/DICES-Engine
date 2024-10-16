@@ -19,19 +19,16 @@ const mjc = function(mfb) {
     };
 
     this.convert_effect = function(target_attribute, formula_block, effect_type, target_attribute_property = 'value') {
+        let return_data = {function: null, dependencies: new Set(), target_attribute: target_attribute, target_property: target_attribute_property};
         let [converted_formula, attribute_dependencies] = mjc_this.convert_formula(formula_block);
-        if (converted_formula === null) return {function: null, dependencies: [], target_attribute: target_attribute};
-        //console.log(converted_formula);
-        if (effect_type === '.=') {
-            return {function: new Function('attributes', 'functions', 'self_attribute', 'dices_iterator',
-                    `attributes["${target_attribute}"]._${target_attribute_property}.push(...${converted_formula})`),
-                dependencies: attribute_dependencies, target_attribute: target_attribute};
+        if (converted_formula !== null) {
+            return_data.function = new Function('attributes', 'functions', 'self_attribute', 'dices_iterator',
+                effect_type === '.='
+                ? `attributes["${target_attribute}"]._${target_attribute_property}.push(...${converted_formula})`
+                : `attributes["${target_attribute}"]._${target_attribute_property} ${effect_type} `+converted_formula);
+            return_data.dependencies = attribute_dependencies;
         }
-        else {
-            return {function: new Function('attributes', 'functions', 'self_attribute', 'dices_iterator',
-                `attributes["${target_attribute}"]._${target_attribute_property} ${effect_type} `+converted_formula),
-                dependencies: attribute_dependencies, target_attribute: target_attribute};
-        }
+        return return_data;
     }
 
     this.convert_formula = function(formula_block) {
@@ -95,7 +92,6 @@ const mjc = function(mfb) {
                 for (let dependency of amount_attribute_dependencies) attribute_dependencies.add(dependency);
                 for (let dependency of magnitude_attribute_dependencies) attribute_dependencies.add(dependency);
                 converted_formula = `Array(${amount}).fill(undefined).map((value) => (dices_iterator.get(${magnitude}))).reduce((partialSum, a) => partialSum + a, 0)`;
-                //converted_formula = Array(amount).fill(`dices_iterator.get(${magnitude})`).join('+');
                 break;
             default:
                 return [null, []];

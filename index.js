@@ -129,7 +129,7 @@ const update_attributes_list = function() {
 };
 
 const rerender_array_attribute = function(attribute_name, value_element) {
-    while (value_element.childElementCount > 1) value_element.removeChild(value_element.children[1]);
+    while (value_element.children.length > 1) value_element.removeChild(value_element.children[1]);
     let attribute_data = attributes[attribute_name];
     for (let i in attribute_data._variants) {
         if (attribute_data._variants.hasOwnProperty(i))
@@ -140,7 +140,6 @@ const rerender_array_attribute = function(attribute_name, value_element) {
             elementValueInput.id = 'attribute-test-frame:'+attribute_name+':value:checkbox'+i;
             elementValueInput.type = 'checkbox';
             elementValueInput.checked = (Array.isArray(attribute_data._value) ? attribute_data._value.includes(variant) : false);
-            console.log(elementValueInput.checked);
             elementValueInput.disabled = (!attribute_data._set.includes('manual'));
             elementValueInput.name = variant;
             if (attribute_data.hasOwnProperty('_choice_amount')) {
