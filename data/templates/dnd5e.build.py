@@ -182,7 +182,7 @@ character_abilities_attributes.attributes['skills'].attributes['perception'].add
 
 character_physical_attributes = tb.AttributeTree(
     armor_class = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Armor Class', set = [tb.SET_AUTO], value = 0),
-    speed = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Speed', set = [tb.SET_MANUAL], value_min = 0, value = 0),
+    speed = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Speed', set = [tb.SET_AUTO], value_min = 0, value = 0),
     max_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Max HP', set = [tb.SET_AUTO], value = 0),
     hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Current HP', set = [tb.SET_MANUAL], value_min = 0, value = 0),
     temp_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Temporary HP', set = [tb.SET_MANUAL], value = 0),
