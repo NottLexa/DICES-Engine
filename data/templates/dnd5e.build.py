@@ -213,6 +213,17 @@ character_abilities_attributes.attributes['score'].attributes['strength'].add_ef
 
 #endregion
 
+#region [Personality]
+
+character_personality_attributes = tb.AttributeTree(
+    trait = tb.Attribute(type = tb.TYPE_STRING, name = 'Personality trait', set = [tb.SET_MANUAL], value = ''),
+    ideal = tb.Attribute(type = tb.TYPE_STRING, name = 'Ideal', set = [tb.SET_MANUAL], value = ''),
+    bond = tb.Attribute(type = tb.TYPE_STRING, name = 'Bond', set = [tb.SET_MANUAL], value = ''),
+    flaw = tb.Attribute(type = tb.TYPE_STRING, name = 'Flaw', set = [tb.SET_MANUAL], value = '')
+)
+
+#endregion
+
 #region [Equipment]
 
 character_equipment_attributes = tb.AttributeTree(
@@ -254,6 +265,7 @@ attributes = tb.AttributeTree(
         base = character_base_attributes,
         abilities = character_abilities_attributes,
         physical = character_physical_attributes,
+        personality = character_personality_attributes,
         equipment = character_equipment_attributes,
         spells = character_spells_attributes,
     ),
