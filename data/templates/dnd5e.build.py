@@ -187,6 +187,9 @@ character_physical_attributes = tb.AttributeTree(
     hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Current HP', set = [tb.SET_MANUAL], value_min = 0, value = 0),
     temp_hp = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Temporary HP', set = [tb.SET_MANUAL], value = 0),
     hit_dice = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Hit Dice (magnitude)', set = [tb.SET_AUTO], value = 0),
+    hit_dice_amount = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Hit Dice amount', set = [tb.SET_MANUAL],
+        value_min = 0, value = 0),
+    max_hit_dice_amount = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Max Hit Dice amount', set = [tb.SET_AUTO], value = 0),
     death_saves = tb.AttributeTree(
         successes = tb.Attribute(type = tb.TYPE_INTEGER, name = 'Death saves: Successes', set = [tb.SET_MANUAL],
             value_min = 0, value_max = 3, value = 0),
@@ -202,6 +205,8 @@ for character_class in hit_dices_by_classes:
 
 character_physical_attributes.attributes['max_hp'].add_effect('character.physical.hp:value_max = @self')
 level_attribute.add_effect('character.physical.max_hp += :max(0, character.physical.hit_dice + @dice(:max(@self-1, 0), character.physical.hit_dice) + character.abilities.modifiers.constitution*@self)')
+level_attribute.add_effect('character.physical.max_hit_dice_amount += @self')
+character_physical_attributes.attributes['max_hit_dice_amount'].add_effect('character.physical.hit_dice_amount:value_max += @self')
 
 character_abilities_attributes.attributes['modifiers'].attributes['dexterity'].add_effect('character.physical.armor_class += :if(character.equipment.armor_on, 0, 10+@self)')
 character_abilities_attributes.attributes['score'].attributes['strength'].add_effect('character.physical.carrying_capacity += @self * 15')
