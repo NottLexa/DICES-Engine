@@ -176,6 +176,14 @@ const post_effect_attributes_cleanup = function(attributes_object) {
             if (attribute._type === 'array') {
                 attribute._value = attribute._value.filter((value)=>(attribute._variants.includes(value)));
             }
+            if (attribute._type === 'integer' && attribute._set.includes('manual')) {
+                let value_from_element = attribute._value;
+                if (attribute.hasOwnProperty('_value_min'))
+                    value_from_element = Math.max(value_from_element, attribute._value_min);
+                if (attribute.hasOwnProperty('_value_max'))
+                    value_from_element = Math.min(value_from_element, attribute._value_max);
+                set_attribute(attributes_object, attribute_name, value_from_element);
+            }
         }
     }
 };
